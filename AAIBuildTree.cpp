@@ -52,12 +52,6 @@ AAIBuildTree::AAIBuildTree() :
 	m_unitCategoryNames[AAIUnitCategory(EUnitCategory::TRANSPORT).GetArrayIndex()].append("Transport");
 	m_unitCategoryNames[AAIUnitCategory(EUnitCategory::MOBILE_CONSTRUCTOR).GetArrayIndex()].append("Mobile Constructor");
 	m_unitCategoryNames[AAIUnitCategory(EUnitCategory::MOBILE_SUPPORT).GetArrayIndex()].append("Mobile Support");
-
-	m_combatUnitCategories = {  AAIUnitCategory(EUnitCategory::GROUND_COMBAT),
-								AAIUnitCategory(EUnitCategory::AIR_COMBAT),
-								AAIUnitCategory(EUnitCategory::HOVER_COMBAT),
-								AAIUnitCategory(EUnitCategory::SEA_COMBAT),
-								AAIUnitCategory(EUnitCategory::SUBMARINE_COMBAT) };
 }
 
 AAIBuildTree::~AAIBuildTree(void)

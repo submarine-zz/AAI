@@ -129,9 +129,6 @@ public:
 	//! @brief Returns the corresponding human readable name of the given category
 	const std::string& GetCategoryName(const AAIUnitCategory& category) const { return m_unitCategoryNames[category.GetArrayIndex()]; }
 
-	//! @brief Returns a list containing all unit categories of combat units
-	const auto& GetCombatUnitCatgegories() const { return m_combatUnitCategories; }
-
 private:
 	//! @brief Sets side for given unit type, and recursively calls itself for all unit types that can be constructed by it.
 	void AssignSideToUnitType(int side, UnitDefId unitDefId);
@@ -206,9 +203,6 @@ private:
 
 	//! For every side (not neutral), a list of units that belong to a certain combat category (order: m_unitsInCombatCategory[side][category])
 	std::vector< std::vector< std::list<UnitDefId> > >  m_unitsInCombatCategory;
-
-	//! An array containing the unit categories of the different combat units
-	std::array< AAIUnitCategory, 5 >              m_combatUnitCategories;
 
 	//! For every side, min/max/avg values for various data (e.g. cost) for every unit category
 	std::vector< AAIUnitStatistics >              m_unitCategoryStatisticsOfSide;

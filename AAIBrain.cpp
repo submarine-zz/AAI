@@ -359,34 +359,34 @@ void AAIBrain::UpdateDefenceCapabilities()
 	m_totalMobileCombatPower.Reset();
 
 	// anti air power
-	for(auto category = ai->s_buildTree.GetCombatUnitCatgegories().begin(); category != ai->s_buildTree.GetCombatUnitCatgegories().end(); ++category)
+	for(const auto category : AAIUnitCategory::m_combatUnitCategories)
 	{
-		for(auto group = ai->GetUnitGroupsList(*category).begin(); group != ai->GetUnitGroupsList(*category).end(); ++group)
+		for(const auto group : ai->GetUnitGroupsList(category))
 		{
-			if((*group)->GetUnitTypeOfGroup().IsAssaultUnit())
+			if(group->GetUnitTypeOfGroup().IsAssaultUnit())
 			{
-				switch((*group)->GetUnitCategoryOfGroup().GetUnitCategory())
+				switch(group->GetUnitCategoryOfGroup().GetUnitCategory())
 				{
 					case EUnitCategory::GROUND_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE, (*group)->GetCombatPowerVsTargetType(ETargetType::SURFACE));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   group->GetCombatPowerVsTargetType(ETargetType::SURFACE));
 						break;
 					case EUnitCategory::HOVER_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE, (*group)->GetCombatPowerVsTargetType(ETargetType::SURFACE));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER, (*group)->GetCombatPowerVsTargetType(ETargetType::FLOATER));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   group->GetCombatPowerVsTargetType(ETargetType::SURFACE));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   group->GetCombatPowerVsTargetType(ETargetType::FLOATER));
 						break;
 					case EUnitCategory::SEA_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   (*group)->GetCombatPowerVsTargetType(ETargetType::SURFACE));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   (*group)->GetCombatPowerVsTargetType(ETargetType::FLOATER));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, (*group)->GetCombatPowerVsTargetType(ETargetType::SUBMERGED));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   group->GetCombatPowerVsTargetType(ETargetType::SURFACE));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   group->GetCombatPowerVsTargetType(ETargetType::FLOATER));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, group->GetCombatPowerVsTargetType(ETargetType::SUBMERGED));
 						break;
 					case EUnitCategory::SUBMARINE_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   (*group)->GetCombatPowerVsTargetType(ETargetType::FLOATER));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, (*group)->GetCombatPowerVsTargetType(ETargetType::SUBMERGED));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   group->GetCombatPowerVsTargetType(ETargetType::FLOATER));
+						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, group->GetCombatPowerVsTargetType(ETargetType::SUBMERGED));
 						break;
 				}	
 			}
-			else if((*group)->GetUnitTypeOfGroup().IsAntiAir())
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::AIR, (*group)->GetCombatPowerVsTargetType(ETargetType::AIR));
+			else if(group->GetUnitTypeOfGroup().IsAntiAir())
+				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::AIR, group->GetCombatPowerVsTargetType(ETargetType::AIR));
 		}
 	}
 }

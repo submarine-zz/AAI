@@ -808,9 +808,7 @@ UnitDefId AAIBuildTable::SelectScout(int side, const ScoutSelectionCriteria& sco
 
 void AAIBuildTable::SelectCombatUnits(std::list<UnitDefId>& unitList, int side, const AAIMovementType& allowedMoveTypes, bool constructorAvailable) const
 {
-	const auto& combatUnitCategories = ai->s_buildTree.GetCombatUnitCatgegories();
-
-	std::vector<bool> checkCategory(combatUnitCategories.size(), false);
+	std::vector<bool> checkCategory(AAIUnitCategory::m_combatUnitCategories.size(), false);
 
 	if(allowedMoveTypes.IsAir())
 		checkCategory[1] = true;
@@ -834,7 +832,7 @@ void AAIBuildTable::SelectCombatUnits(std::list<UnitDefId>& unitList, int side, 
 		checkCategory[4] = true;
 
 	int i(0);
-	for(auto unitCategory : combatUnitCategories)
+	for(const auto unitCategory : AAIUnitCategory::m_combatUnitCategories)
 	{
 		if(checkCategory[i])
 		{

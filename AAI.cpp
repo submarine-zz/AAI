@@ -831,7 +831,7 @@ void AAI::Update()
 	if (!((tick+7) % 150))
 	{
 		AAI_SCOPED_TIMER("Groups")
-		for (const auto& category : s_buildTree.GetCombatUnitCatgegories())
+		for (const auto category : AAIUnitCategory::m_combatUnitCategories)
 		{
 			for (auto group : GetUnitGroupsList(category))
 			{
@@ -943,11 +943,11 @@ void AAI::Update()
 	if (!(tick % 1877))
 	{
 		AAI_SCOPED_TIMER("Recheck-Rally-Points")
-		for (auto category = s_buildTree.GetCombatUnitCatgegories().begin();  category != s_buildTree.GetCombatUnitCatgegories().end(); ++category)
+		for (const auto category : AAIUnitCategory::m_combatUnitCategories)
 		{
-			for (auto group = GetUnitGroupsList(*category).begin(); group != GetUnitGroupsList(*category).end(); ++group)
+			for (auto group : GetUnitGroupsList(category))
 			{
-				(*group)->CheckUpdateOfRallyPoint();
+				group->CheckUpdateOfRallyPoint();
 			}
 		}
 	}

@@ -1975,15 +1975,15 @@ AAIGroup* AAIExecute::GetClosestGroupForDefence(const AAITargetType& attackerTar
 	AAIGroup *selectedGroup(nullptr);
 	float highestRating(0.0f);
 
-	for(auto category = ai->s_buildTree.GetCombatUnitCatgegories().begin(); category != ai->s_buildTree.GetCombatUnitCatgegories().end(); ++category)
+	for(const auto category : AAIUnitCategory::m_combatUnitCategories)
 	{
-		for(auto group = ai->GetUnitGroupsList(*category).begin(); group != ai->GetUnitGroupsList(*category).end(); ++group)
+		for(auto group : ai->GetUnitGroupsList(category))
 		{
-			const float rating = (*group)->GetDefenceRating(attackerTargetType, pos, importance, continentId);
+			const float rating = group->GetDefenceRating(attackerTargetType, pos, importance, continentId);
 			
-			if( (rating > highestRating) && ((*group)->GetUnitCategoryOfGroup().IsAirCombat() == false))
+			if( (rating > highestRating) && (group->GetUnitCategoryOfGroup().IsAirCombat() == false))
 			{
-				selectedGroup = *group;
+				selectedGroup = group;
 				highestRating = rating;
 			}
 		}

@@ -121,6 +121,9 @@ public:
 	//! Returns unit category as index (to access arrays)
 	int GetArrayIndex() const {return static_cast<int>(m_unitCategory); };
 
+	//! An array containing the unit categories of the different combat units
+	static constexpr std::array< EUnitCategory, 5 >  m_combatUnitCategories = {EUnitCategory::GROUND_COMBAT, EUnitCategory::AIR_COMBAT, EUnitCategory::HOVER_COMBAT, EUnitCategory::SEA_COMBAT, EUnitCategory::SUBMARINE_COMBAT};
+
 private:
 	//! The unit category
 	EUnitCategory m_unitCategory;
