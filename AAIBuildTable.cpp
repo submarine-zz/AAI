@@ -46,7 +46,7 @@ AAIBuildTable::AAIBuildTable(AAI* ai)
 		//spring first unitdef id is 1, we remap it so id = is position in array
 		unitList.resize(numOfUnits+1);
 		ai->GetAICallback()->GetUnitDefList(&unitList[1]);
-		UnitDef* tmp = new UnitDef();
+		springLegacyAI::UnitDef* tmp = new springLegacyAI::UnitDef();
 		tmp->id=0;
 		unitList[0] = tmp;
 		#ifndef NDEBUG

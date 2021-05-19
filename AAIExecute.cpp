@@ -471,12 +471,12 @@ bool AAIExecute::BuildExtractor()
 		}
 
 		// stop looking for metal spots further away from base if already one found
-		if( (distanceFromBase > 3) && (extractorSpots.size() > 0) )
+		if( (distanceFromBase > 3) && (extractorSpots.empty() == false) )
 			break;
 	}
 
 	// look for spot with minimum dist to available builder
-	if(extractorSpots.size() > 0)
+	if(extractorSpots.empty() == false)
 	{
 		const AvailableMetalSpot& metalSpot = (extractorSpots.begin())->first;
 
@@ -1824,7 +1824,7 @@ void AAIExecute::CheckConstruction()
 	// ----------------------------------------------------------------------------------------------------------------
 	// check construction for selected building categories
 	// ----------------------------------------------------------------------------------------------------------------
-	if(categoriesToBeChecked.size() > 0)
+	if(categoriesToBeChecked.empty() == false)
 	{
 		for(auto category = categoriesToBeChecked.begin(); category != categoriesToBeChecked.end(); ++category)
 		{

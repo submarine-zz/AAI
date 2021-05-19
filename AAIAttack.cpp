@@ -34,7 +34,7 @@ AAIAttack::~AAIAttack(void)
 
 bool AAIAttack::CheckIfFailed()
 {
-	if(m_combatUnitGroups.size() > 0)
+	if(m_combatUnitGroups.empty() == false)
 	{
 		// check if still enough power to attack target sector
 		if(SufficientCombatPowerToAttackSector(m_attackDestination, AAIConstants::attackCombatPowerFactor))
@@ -91,7 +91,7 @@ const AAISector* AAIAttack::DetermineSectorToContinueAttack()
 
 bool AAIAttack::SufficientCombatPowerAt(const AAISector *sector, float aggressiveness) const
 {
-	if(sector && (m_combatUnitGroups.size() > 0) )
+	if(sector && (m_combatUnitGroups.empty() == false) )
 	{
 		// determine target types of own units and combat efficiency against different types of enemy units
 		MobileTargetTypeValues numberOfMyCombatUnits;
@@ -139,7 +139,7 @@ bool AAIAttack::SufficientCombatPowerAt(const AAISector *sector, float aggressiv
 
 bool AAIAttack::SufficientCombatPowerToAttackSector(const AAISector *sector, float aggressiveness) const
 {
-	if(sector && (m_combatUnitGroups.size() > 0))
+	if(sector && (m_combatUnitGroups.empty() == false))
 	{
 		// determine total combat power vs static  & how it is distributed over different target types
 		float combatPowerVsBuildings(0.0f);

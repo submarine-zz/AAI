@@ -1013,7 +1013,7 @@ EUnitCategory AAIBuildTree::DetermineUnitCategory(const springLegacyAI::UnitDef*
 
 bool AAIBuildTree::IsNanoTurret(const springLegacyAI::UnitDef* unitDef) const
 {
-	return unitDef->canAssist && (unitDef->buildOptions.size() == 0);
+	return (unitDef->canAssist && unitDef->buildOptions.empty());
 }
 
 bool AAIBuildTree::IsScout(const springLegacyAI::UnitDef* unitDef) const

@@ -395,7 +395,7 @@ bool AAIConfig::LoadGameConfig(AAI *ai)
 		return false;
 	}
 
-	if(unknownUnits.size() > 0)
+	if(unknownUnits.empty() == false)
 	{
 		ai->Log("Warning: The following unknown units were found when loading the mod configuration:\n");
 		for(auto unitName : unknownUnits)
