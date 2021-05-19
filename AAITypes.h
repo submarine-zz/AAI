@@ -265,9 +265,13 @@ public:
 
 	TargetTypeValues() : TargetTypeValues(0.0f) {}
 
-	void Fill(float value) { m_values.fill(value); }
+	float&       operator[](const AAITargetType& targetType)       { return m_values[targetType.GetArrayIndex()]; }
+	const float& operator[](const AAITargetType& targetType) const { return m_values[targetType.GetArrayIndex()]; }
 
-	void SetValue(const AAITargetType& targetType, float value) { m_values[targetType.GetArrayIndex()] = value; }
+	float&       operator[](ETargetType targetType)       { return m_values[static_cast<int>(targetType)]; }
+	const float& operator[](ETargetType targetType) const { return m_values[static_cast<int>(targetType)]; }
+
+	void Fill(float value) { m_values.fill(value); }
 
 	void SetValues(const TargetTypeValues& values)
 	{
@@ -317,11 +321,6 @@ public:
 		return std::accumulate(m_values.begin(), m_values.end(), 0.0f);
 	}
 
-	void AddValue(const AAITargetType& targetType, float value)
-	{
-		m_values[targetType.GetArrayIndex()] += value;
-	}
-
 	void AddValues(const TargetTypeValues& values, float multiplier)
 	{
 		static_assert(AAITargetType::numberOfTargetTypes == 5, "Number of target types does not fit to implementation");
@@ -344,6 +343,12 @@ class MobileTargetTypeValues
 public:
 	MobileTargetTypeValues() { Reset(); }
 
+	float&       operator[](const AAITargetType& targetType)       { return m_values[targetType.GetArrayIndex()]; }
+	const float& operator[](const AAITargetType& targetType) const { return m_values[targetType.GetArrayIndex()]; }
+
+	float&       operator[](ETargetType targetType)       { return m_values[static_cast<int>(targetType)]; }
+	const float& operator[](ETargetType targetType) const { return m_values[static_cast<int>(targetType)]; }
+
 	void Reset()
 	{
 		static_assert(AAITargetType::numberOfMobileTargetTypes == 4, "Number of mobile target types does not fit to implementation");
@@ -351,15 +356,6 @@ public:
 		m_values[1] = 0.0f;
 		m_values[2] = 0.0f;
 		m_values[3] = 0.0f;
-	}
-
-	float GetValueOfTargetType(const AAITargetType& targetType) const { return m_values[targetType.GetArrayIndex()]; }
-
-	void SetValueForTargetType(const AAITargetType& targetType, float value) { m_values[targetType.GetArrayIndex()] = value; }
-
-	void AddValueForTargetType(const AAITargetType& targetType, float value)
-	{
-		m_values[targetType.GetArrayIndex()] += value;
 	}
 
 	void MultiplyValues(float factor)

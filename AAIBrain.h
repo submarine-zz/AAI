@@ -94,7 +94,7 @@ public:
 	float GetAttacksBy(const AAITargetType& targetType, const GamePhase& gamePhase) const;
 
 	//! @brief Returns the recent attacks by the given target type
-	float GetRecentAttacksBy(const AAITargetType& targetType) const { return m_recentlyAttackedByRates.GetValueOfTargetType(targetType); }
+	float GetRecentAttacksBy(const AAITargetType& targetType) const { return m_recentlyAttackedByRates[targetType]; }
 
 	//! @brief Return the current power suplus (excess energy + small percentage of stored energy - offset)
 	float GetAveragePowerSurplus() const;

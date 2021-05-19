@@ -28,17 +28,17 @@ public:
 
 	void AddAttack(const GamePhase& gamePhase, const AAITargetType& attackerTargetType)
 	{
-		m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()].AddValueForTargetType(attackerTargetType, 1.0f);
+		m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()][attackerTargetType] += 1.0f;
 	}
 
 	void SetAttackedByRate(const GamePhase& gamePhase, const AAITargetType& attackerTargetType, float rate)
 	{
-		m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()].SetValueForTargetType(attackerTargetType, rate);
+		m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()][attackerTargetType] = rate;
 	}
 
 	float GetAttackedByRate(const GamePhase& gamePhase, const AAITargetType& attackerTargetType) const
 	{
-		return m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()].GetValueOfTargetType(attackerTargetType);
+		return m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()][attackerTargetType];
 	}
 
 	void DecreaseByFactor(const GamePhase& updateUntilGamePhase, float factor)
@@ -50,7 +50,7 @@ public:
 	float GetAttackedByRateUntilEarlyPhase(const AAITargetType& attackerTargetType) const
 	{
 		static_assert(GamePhase::numberOfGamePhases >= 2, "Number of game phases does not fit to implementation");
-		return (m_attackedByRatesPerGamePhase[0].GetValueOfTargetType(attackerTargetType) + m_attackedByRatesPerGamePhase[1].GetValueOfTargetType(attackerTargetType));
+		return (m_attackedByRatesPerGamePhase[0][attackerTargetType] + m_attackedByRatesPerGamePhase[1][attackerTargetType]);
 	}
 
 private:

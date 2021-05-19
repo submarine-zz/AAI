@@ -99,7 +99,7 @@ bool AAIAttack::SufficientCombatPowerAt(const AAISector *sector, float aggressiv
 
 		for(auto group : m_combatUnitGroups)
 		{
-			numberOfMyCombatUnits.AddValueForTargetType(group->GetTargetType(), static_cast<float>(group->GetCurrentSize()) );
+			numberOfMyCombatUnits[group->GetTargetType()] += static_cast<float>(group->GetCurrentSize());
 			group->AddGroupCombatPower(myCombatPower);
 		}
 
@@ -148,15 +148,15 @@ bool AAIAttack::SufficientCombatPowerToAttackSector(const AAISector *sector, flo
 		for(const auto group : m_combatUnitGroups)
 		{
 			const float combatPower = group->GetCombatPowerVsTargetType(ETargetType::STATIC);
-			targetTypeWeights.AddValueForTargetType( group->GetTargetType(), combatPower);
+			targetTypeWeights[group->GetTargetType()] += combatPower;
 
 			combatPowerVsBuildings += combatPower;
 		}
 		
 		// determine combat power by static enemy defences with respect to target type of attacking units
-		const float enemyDefencePower = targetTypeWeights.GetValueOfTargetType(ETargetType::SURFACE)   * sector->GetEnemyCombatPower(ETargetType::SURFACE)
-									  + targetTypeWeights.GetValueOfTargetType(ETargetType::FLOATER)   * sector->GetEnemyCombatPower(ETargetType::FLOATER)
-									  + targetTypeWeights.GetValueOfTargetType(ETargetType::SUBMERGED) * sector->GetEnemyCombatPower(ETargetType::SUBMERGED);
+		const float enemyDefencePower = targetTypeWeights[ETargetType::SURFACE]   * sector->GetEnemyCombatPower(ETargetType::SURFACE)
+									  + targetTypeWeights[ETargetType::FLOATER]   * sector->GetEnemyCombatPower(ETargetType::FLOATER)
+									  + targetTypeWeights[ETargetType::SUBMERGED] * sector->GetEnemyCombatPower(ETargetType::SUBMERGED);
 
 		//ai->Log("Attacker / defender combat power: %f vs %f\n", combatPowerVsBuildings, enemyDefencePower);
 
@@ -230,8 +230,8 @@ AAIMovementType AAIAttack::GetMovementTypeOfAssignedUnits() const
 
 void AAIAttack::DetermineTargetTypeOfInvolvedUnits(MobileTargetTypeValues& targetTypesOfUnits) const
 {
-	for(auto group : m_combatUnitGroups)
-		targetTypesOfUnits.AddValueForTargetType( group->GetTargetType(), static_cast<float>( group->GetCurrentSize() ) );
+	for(const auto group : m_combatUnitGroups)
+		targetTypesOfUnits[group->GetTargetType()] += static_cast<float>( group->GetCurrentSize() );
 }
 
 void AAIAttack::AddGroupsOfTargetType(const std::list<AAIGroup*>& groupList, const AAITargetType& targetType)

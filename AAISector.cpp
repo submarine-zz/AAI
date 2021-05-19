@@ -144,6 +144,7 @@ void AAISector::ResetScoutedEnemiesData()
 void AAISector::AddScoutedEnemyUnit(UnitDefId enemyDefId, int framesSinceLastUpdate)
 {
 	const AAIUnitCategory& categoryOfEnemyUnit = ai->s_buildTree.GetUnitCategory(enemyDefId);
+
 	// add building to sector (and update stat_combat_power if it's a stat defence)
 	if(categoryOfEnemyUnit.IsBuilding())
 	{
@@ -152,7 +153,7 @@ void AAISector::AddScoutedEnemyUnit(UnitDefId enemyDefId, int framesSinceLastUpd
 		if(categoryOfEnemyUnit.IsStaticDefence())
 		{
 			m_enemyStaticCombatPower.AddCombatPower( ai->s_buildTree.GetCombatPower(enemyDefId) );
-			m_enemyCombatUnits.AddValue(ETargetType::STATIC, 1.0f);
+			m_enemyCombatUnits[ETargetType::STATIC] += 1.0f;
 		}
 	}
 	// add unit to sector and update mobile_combat_power
@@ -162,7 +163,7 @@ void AAISector::AddScoutedEnemyUnit(UnitDefId enemyDefId, int framesSinceLastUpd
 		const float lastSeen = exp(- static_cast<float>(framesSinceLastUpdate) / 5000.0f );
 		const AAITargetType& targetType = ai->s_buildTree.GetTargetType(enemyDefId);
 
-		m_enemyCombatUnits.AddValue(targetType, lastSeen);
+		m_enemyCombatUnits[targetType] += lastSeen;
 
 		m_enemyMobileCombatPower.AddCombatPower( ai->s_buildTree.GetCombatPower(enemyDefId), lastSeen );
 	}
@@ -319,9 +320,9 @@ float AAISector::GetAttackRating(const std::vector<float>& globalCombatPower, co
 	if( (m_distanceToBase > 0) && (GetNumberOfEnemyBuildings() > 0))
 	{
 		const float myAttackPower     =   globalCombatPower[AAITargetType::staticIndex] + continentCombatPower[m_continentId][AAITargetType::staticIndex];
-		const float enemyDefencePower =   assaultGroupsOfType.GetValueOfTargetType(ETargetType::SURFACE)   * GetEnemyCombatPower(ETargetType::SURFACE)
-										+ assaultGroupsOfType.GetValueOfTargetType(ETargetType::FLOATER)   * GetEnemyCombatPower(ETargetType::FLOATER)
-										+ assaultGroupsOfType.GetValueOfTargetType(ETargetType::SUBMERGED) * GetEnemyCombatPower(ETargetType::SUBMERGED);
+		const float enemyDefencePower =   assaultGroupsOfType[ETargetType::SURFACE]   * GetEnemyCombatPower(ETargetType::SURFACE)
+										+ assaultGroupsOfType[ETargetType::FLOATER]   * GetEnemyCombatPower(ETargetType::FLOATER)
+										+ assaultGroupsOfType[ETargetType::SUBMERGED] * GetEnemyCombatPower(ETargetType::SUBMERGED);
 
 		const float lostUnitsFactor = (maxLostUnits > 1.0f) ? (2.0f - (GetTotalLostUnits() / maxLostUnits) ) : 1.0f;
 
@@ -353,7 +354,7 @@ float AAISector::GetRatingAsNextScoutDestination(const AAIMovementType& scoutMov
 
 		// factor between 1 and 0.4 (depending on number of recently lost units)
 		//const float lostUnits =  // scoutMoveType.IsAir() ? m_lostAirUnits : m_lostUnits;
-		const float lostScoutsFactor = 0.4f + 0.6f / (0.5f * m_lostUnits.GetValueOfTargetType(scoutTargetType) + 1.0f);
+		const float lostScoutsFactor = 0.4f + 0.6f / (0.5f * m_lostUnits[scoutTargetType] + 1.0f);
 
 		const float metalSpotsFactor = 2.0f + static_cast<float>(metalSpots.size());
 
@@ -529,17 +530,17 @@ bool AAISector::IsSupportNeededToDefenceVs(const AAITargetType& targetType) cons
 
 float AAISector::GetLocalAttacksBy(const AAITargetType& targetType, float previousGames, float currentGame) const
 {
-	const float totalAttacks = (previousGames * m_attacksByTargetTypeInPreviousGames.GetValueOfTargetType(targetType) + currentGame * m_attacksByTargetTypeInCurrentGame.GetValueOfTargetType(targetType) );
+	const float totalAttacks = ( previousGames * m_attacksByTargetTypeInPreviousGames[targetType] + currentGame * m_attacksByTargetTypeInCurrentGame[targetType] );
 	return  totalAttacks / (previousGames + currentGame);
 }
 
 float AAISector::GetEnemyCombatPowerVsUnits(const MobileTargetTypeValues& unitsOfTargetType) const
 {
 	float defencePower(0.0f);
-	for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
+	for(const auto targetType : AAITargetType::m_mobileTargetTypes)
 	{
-		const float totalDefPower = m_enemyStaticCombatPower.GetValueOfTargetType(targetType) + m_enemyMobileCombatPower.GetValueOfTargetType(targetType);
-		defencePower += unitsOfTargetType.GetValueOfTargetType(targetType) * totalDefPower;
+		const float totalDefPower = m_enemyStaticCombatPower[targetType] + m_enemyMobileCombatPower[targetType];
+		defencePower += unitsOfTargetType[targetType] * totalDefPower;
 	}
 
 	return defencePower;
@@ -583,15 +584,16 @@ void AAISector::UpdateThreatValues(UnitDefId destroyedDefId, UnitDefId attackerD
 	{
 		if(attackerCategory.IsCombatUnit())
 		{
+			const AAITargetType& targetType = ai->s_buildTree.GetTargetType(attackerDefId);
 			const float increment = (m_distanceToBase == 0) ? 0.5f : 1.0f;
 			
-			m_attacksByTargetTypeInCurrentGame.AddValueForTargetType(ai->s_buildTree.GetTargetType(attackerDefId) , increment);
+			m_attacksByTargetTypeInCurrentGame[targetType] += increment;
 		}
 	}
 	else // unit was lost
 	{
 		const AAITargetType& targetType = ai->s_buildTree.GetTargetType(destroyedDefId);
-		m_lostUnits.AddValueForTargetType(targetType, 1.0f);
+		m_lostUnits[targetType] += 1.0f;
 	}
 }
 

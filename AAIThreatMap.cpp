@@ -25,7 +25,7 @@ void AAIThreatMap::UpdateLocalEnemyCombatPower(const AAITargetType& targetType, 
 	{
 		for(size_t y = 0; y < sectors[x].size(); ++y)
 		{
-			m_estimatedEnemyCombatPowerForSector[x][y].SetValueForTargetType(targetType, sectors[x][y].GetEnemyCombatPower(targetType) );
+			m_estimatedEnemyCombatPowerForSector[x][y][targetType] = sectors[x][y].GetEnemyCombatPower(targetType);
 		}
 	}
 }
@@ -109,7 +109,7 @@ float AAIThreatMap::CalculateThreat(const AAITargetType& targetType, const Secto
 		if( (x !=lastSector.x) || (y != lastSector.y) ) // avoid counting the same sector twice if step size is too low because of rounding errors
 		{
 			if( static_cast<int>(threatTypeToConsider) & static_cast<int>(EThreatType::COMBAT_POWER) )
-				totalThreat += m_estimatedEnemyCombatPowerForSector[x][y].GetValueOfTargetType(targetType);
+				totalThreat += m_estimatedEnemyCombatPowerForSector[x][y][targetType];
 
 			if( static_cast<int>(threatTypeToConsider) & static_cast<int>(EThreatType::LOST_UNITS) )
 				totalThreat += sectors[x][y].GetLostUnits(targetType);

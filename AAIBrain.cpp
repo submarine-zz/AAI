@@ -331,10 +331,10 @@ void AAIBrain::UpdateMaxCombatUnitsSpotted(const MobileTargetTypeValues& spotted
 	for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
 	{
 		// check for new max values
-		const float value = spottedCombatUnits.GetValueOfTargetType(targetType);
+		const float value = spottedCombatUnits[targetType];
 
-		if(value > m_maxSpottedCombatUnitsOfTargetType.GetValueOfTargetType(targetType))
-			m_maxSpottedCombatUnitsOfTargetType.SetValueForTargetType(targetType, value);
+		if(value > m_maxSpottedCombatUnitsOfTargetType[targetType])
+			m_maxSpottedCombatUnitsOfTargetType[targetType] = value;
 	}
 }
 
@@ -348,45 +348,58 @@ void AAIBrain::AttackedBy(const AAITargetType& attackerTargetType)
 	const GamePhase gamePhase(ai->GetAICallback()->GetCurrentFrame());
 
 	// update counter for current game
-	m_recentlyAttackedByRates.AddValueForTargetType(attackerTargetType, 1.0f);
+	m_recentlyAttackedByRates[attackerTargetType] += 1.0f;
 	
 	// update counter for memory dependent on playtime
 	s_attackedByRates.AddAttack(gamePhase, attackerTargetType);
+}
+
+//! Helper function that adds the given combat power to mobile combat power vs the appropriate target type (depending on unit type & category of combat unit)
+void AddToMobileCombatPower(MobileTargetTypeValues& mobileCombatPower, const TargetTypeValues& combatPower, const AAIUnitType&  unitType, const AAIUnitCategory& category)
+{
+	if(unitType.IsAssaultUnit())
+	{
+		switch(category.GetUnitCategory())
+		{
+			case EUnitCategory::GROUND_COMBAT:
+				mobileCombatPower[ETargetType::SURFACE]   += combatPower[ETargetType::SURFACE];
+				break;
+			case EUnitCategory::HOVER_COMBAT:
+				mobileCombatPower[ETargetType::SURFACE]   += combatPower[ETargetType::SURFACE];
+				mobileCombatPower[ETargetType::FLOATER]   += combatPower[ETargetType::FLOATER];
+				break;
+			case EUnitCategory::SEA_COMBAT:
+				mobileCombatPower[ETargetType::SURFACE]   += combatPower[ETargetType::SURFACE];
+				mobileCombatPower[ETargetType::FLOATER]   += combatPower[ETargetType::FLOATER];
+				mobileCombatPower[ETargetType::SUBMERGED] += combatPower[ETargetType::SUBMERGED];
+				break;
+			case EUnitCategory::SUBMARINE_COMBAT:
+				mobileCombatPower[ETargetType::FLOATER]   += combatPower[ETargetType::FLOATER];
+				mobileCombatPower[ETargetType::SUBMERGED] += combatPower[ETargetType::SUBMERGED];
+				break;
+		}
+	}
+	else if(unitType.IsAntiAir())
+	{
+		mobileCombatPower[ETargetType::AIR] += combatPower[ETargetType::AIR];
+	}
 }
 
 void AAIBrain::UpdateDefenceCapabilities()
 {
 	m_totalMobileCombatPower.Reset();
 
-	// anti air power
 	for(const auto category : AAIUnitCategory::m_combatUnitCategories)
 	{
 		for(const auto group : ai->GetUnitGroupsList(category))
 		{
-			if(group->GetUnitTypeOfGroup().IsAssaultUnit())
-			{
-				switch(group->GetUnitCategoryOfGroup().GetUnitCategory())
-				{
-					case EUnitCategory::GROUND_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   group->GetCombatPowerVsTargetType(ETargetType::SURFACE));
-						break;
-					case EUnitCategory::HOVER_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   group->GetCombatPowerVsTargetType(ETargetType::SURFACE));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   group->GetCombatPowerVsTargetType(ETargetType::FLOATER));
-						break;
-					case EUnitCategory::SEA_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   group->GetCombatPowerVsTargetType(ETargetType::SURFACE));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   group->GetCombatPowerVsTargetType(ETargetType::FLOATER));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, group->GetCombatPowerVsTargetType(ETargetType::SUBMERGED));
-						break;
-					case EUnitCategory::SUBMARINE_COMBAT:
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   group->GetCombatPowerVsTargetType(ETargetType::FLOATER));
-						m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, group->GetCombatPowerVsTargetType(ETargetType::SUBMERGED));
-						break;
-				}	
-			}
-			else if(group->GetUnitTypeOfGroup().IsAntiAir())
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::AIR, group->GetCombatPowerVsTargetType(ETargetType::AIR));
+			TargetTypeValues groupCombatPower = ai->s_buildTree.GetCombatPower(group->GetUnitDefIdOfGroup());
+			groupCombatPower.MultiplyValues( static_cast<float>(group->GetCurrentSize()) );
+
+			const AAIUnitType&     groupUnitType = group->GetUnitTypeOfGroup();
+			const AAIUnitCategory& groupCategory = group->GetUnitCategoryOfGroup();
+
+			AddToMobileCombatPower(m_totalMobileCombatPower, groupCombatPower, groupUnitType, groupCategory);
 		}
 	}
 }
@@ -394,42 +407,10 @@ void AAIBrain::UpdateDefenceCapabilities()
 void AAIBrain::AddDefenceCapabilities(UnitDefId unitDefId)
 {
 	const TargetTypeValues& combatPower = ai->s_buildTree.GetCombatPower(unitDefId);
+	const AAIUnitType&      unitType = ai->s_buildTree.GetUnitType(unitDefId);
+	const AAIUnitCategory&  category = ai->s_buildTree.GetUnitCategory(unitDefId);
 
-	if(ai->s_buildTree.GetUnitType(unitDefId).IsAssaultUnit())
-	{
-		const AAIUnitCategory& category = ai->s_buildTree.GetUnitCategory(unitDefId);
-
-		switch (category.GetUnitCategory())
-		{
-			case EUnitCategory::GROUND_COMBAT:
-			{
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE, combatPower.GetValue(ETargetType::SURFACE));
-				break;
-			}
-			case EUnitCategory::HOVER_COMBAT:
-			{
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE, combatPower.GetValue(ETargetType::SURFACE));
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER, combatPower.GetValue(ETargetType::FLOATER));
-				break;
-			}
-			case EUnitCategory::SEA_COMBAT:
-			{
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SURFACE,   combatPower.GetValue(ETargetType::SURFACE));
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   combatPower.GetValue(ETargetType::FLOATER));
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, combatPower.GetValue(ETargetType::SUBMERGED));
-				break;
-			}
-			case EUnitCategory::SUBMARINE_COMBAT:
-			{
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::FLOATER,   combatPower.GetValue(ETargetType::FLOATER));
-				m_totalMobileCombatPower.AddValueForTargetType(ETargetType::SUBMERGED, combatPower.GetValue(ETargetType::SUBMERGED));
-			}
-			default:
-				break;
-		}
-	}
-	else if(ai->s_buildTree.GetUnitType(unitDefId).IsAntiAir())
-		m_totalMobileCombatPower.AddValueForTargetType(ETargetType::AIR, combatPower.GetValue(ETargetType::AIR));
+	AddToMobileCombatPower(m_totalMobileCombatPower, combatPower, unitType, category);	
 }
 
 float AAIBrain::Affordable()
@@ -467,17 +448,20 @@ void AAIBrain::BuildUnits()
 		// special setting for air units: adjust combat power to prefer bombers if enemy pressure is low and many bombing run targets are available
 		if(moveType.IsAir())
 		{
-			finalCombatPower.SetValue(ETargetType::SUBMERGED, 0.0f);
+			finalCombatPower[ETargetType::SUBMERGED] = 0.0f;
 
 			// bomber preference ratio between 0 (no targets or high enemy pressure) and 0.9 (low enemy pressure and many possible targets for bombing run) 
 			const float bomberRatio = std::max(ai->AirForceMgr()->GetNumberOfBombTargets() - m_estimatedPressureByEnemies - 0.1f, 0.0f);
 
+			ai->Log("Air selected - bomb targets: %f      enemy pressure: %f\n", ai->AirForceMgr()->GetNumberOfBombTargets(), m_estimatedPressureByEnemies); 
+
 			if(IsRandomNumberBelow(bomberRatio))
 			{
-				finalCombatPower.SetValue(ETargetType::SURFACE, 0.0f);
-				finalCombatPower.SetValue(ETargetType::FLOATER, 0.0f);
-				finalCombatPower.SetValue(ETargetType::AIR,     0.0f);
-				finalCombatPower.SetValue(ETargetType::STATIC,  1.0f);
+				ai->Log("bomber selected\n"); 
+				finalCombatPower[ETargetType::SURFACE] = 0.0f;
+				finalCombatPower[ETargetType::FLOATER] = 0.0f;
+				finalCombatPower[ETargetType::AIR]     = 0.0f;
+				finalCombatPower[ETargetType::STATIC]  = 1.0f;
 			}
 		}
 
@@ -501,12 +485,11 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 
 	for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
 	{
-		attackedByCategory.SetValueForTargetType(targetType, GetAttacksBy(targetType, gamePhase) );
-		attackedByCatStatistics.AddValue( attackedByCategory.GetValueOfTargetType(targetType) );
+		attackedByCategory[targetType] = GetAttacksBy(targetType, gamePhase);
 
-		unitsSpottedStatistics.AddValue( m_maxSpottedCombatUnitsOfTargetType.GetValueOfTargetType(targetType) );
-
-		defenceStatistics.AddValue(m_totalMobileCombatPower.GetValueOfTargetType(targetType));
+		attackedByCatStatistics.AddValue( attackedByCategory[targetType] );
+		unitsSpottedStatistics.AddValue( m_maxSpottedCombatUnitsOfTargetType[targetType] );
+		defenceStatistics.AddValue( m_totalMobileCombatPower[targetType] );
 	}
 
 	attackedByCatStatistics.Finalize();
@@ -520,15 +503,15 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 	const float mapFactor(0.25f);
 	TargetTypeValues threatByMap(0.0f);
 
-	threatByMap.AddValue(ETargetType::AIR, mapFactor);
+	threatByMap[ETargetType::AIR] = mapFactor;
 
 	if(AAIMap::s_waterTilesRatio < 0.85f)
-		threatByMap.AddValue(ETargetType::SURFACE,   mapFactor * (1.0f - AAIMap::s_waterTilesRatio) );
+		threatByMap[ETargetType::SURFACE]   += mapFactor * (1.0f - AAIMap::s_waterTilesRatio);
 
 	if(AAIMap::s_waterTilesRatio > 0.15f)
 	{
-		threatByMap.AddValue(ETargetType::FLOATER,   mapFactor * AAIMap::s_waterTilesRatio);
-		threatByMap.AddValue(ETargetType::SUBMERGED, mapFactor * AAIMap::s_waterTilesRatio);
+		threatByMap[ETargetType::FLOATER]   += mapFactor * AAIMap::s_waterTilesRatio;
+		threatByMap[ETargetType::SUBMERGED] += mapFactor * AAIMap::s_waterTilesRatio;
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
@@ -542,11 +525,13 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 	for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
 	{
 		const float sum =   threatByMap.GetValue(targetType) 
-						  + attackedByCatStatistics.GetDeviationFromZero( attackedByCategory.GetValueOfTargetType(targetType) ) 
-						  + unitsSpottedStatistics.GetDeviationFromZero( m_maxSpottedCombatUnitsOfTargetType.GetValueOfTargetType(targetType) );
+						  + attackedByCatStatistics.GetDeviationFromZero( attackedByCategory[targetType] ) 
+						  + unitsSpottedStatistics.GetDeviationFromZero( m_maxSpottedCombatUnitsOfTargetType[targetType] );
 
-		const float threat = sum / (0.1f + defenceStatistics.GetDeviationFromMax(m_totalMobileCombatPower.GetValueOfTargetType(targetType)) );
-		combatPowerVsTargetType.SetValue(targetType, threat);
+		const float threat = sum / (0.1f + defenceStatistics.GetDeviationFromZero(m_totalMobileCombatPower[targetType]));
+		combatPowerVsTargetType[targetType] = threat;
+
+		ai->Log("%s: threat: %f  def: %f   ", AAITargetType(targetType).GetName().c_str(), sum, defenceStatistics.GetDeviationFromMax(m_totalMobileCombatPower[targetType]));
 
 		if(threat > highestThreat)
 		{
@@ -554,6 +539,8 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 			typeHighestThreat = targetType;
 		}
 	}
+
+	ai->Log("\n");
 
 	//-----------------------------------------------------------------------------------------------------------------
 	// set combat power vs less important target types to zero depending on target type that is currently perceived as highest threat
@@ -563,34 +550,35 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 	{
 		case ETargetType::SURFACE:
 		{
-			combatPowerVsTargetType.SetValue(ETargetType::AIR,       0.0f);
-			combatPowerVsTargetType.SetValue(ETargetType::FLOATER,   0.0f);
-			combatPowerVsTargetType.SetValue(ETargetType::SUBMERGED, 0.0f);
+			combatPowerVsTargetType[ETargetType::AIR]       = 0.0f;
+			combatPowerVsTargetType[ETargetType::FLOATER]   = 0.0f;
+			combatPowerVsTargetType[ETargetType::SUBMERGED] = 0.0f;
 			break;
 		}
 		case ETargetType::AIR:
 		{
-			combatPowerVsTargetType.SetValue(ETargetType::SURFACE,   0.0f);
-			combatPowerVsTargetType.SetValue(ETargetType::FLOATER,   0.0f);
-			combatPowerVsTargetType.SetValue(ETargetType::SUBMERGED, 0.0f);
+			combatPowerVsTargetType[ETargetType::SURFACE]   = 0.0f;
+			combatPowerVsTargetType[ETargetType::FLOATER]   = 0.0f;
+			combatPowerVsTargetType[ETargetType::SUBMERGED] = 0.0f;
 			break;
 		}
-		case ETargetType::FLOATER:
+		case ETargetType::FLOATER: // fallthrough intended
+			[[fallthrough]];
 		case ETargetType::SUBMERGED:
 		{
-			combatPowerVsTargetType.SetValue(ETargetType::SURFACE, 0.0f);
-			combatPowerVsTargetType.SetValue(ETargetType::AIR,     0.0f);
+			combatPowerVsTargetType[ETargetType::SURFACE]  = 0.0f;
+			combatPowerVsTargetType[ETargetType::AIR]      = 0.0f;
 			break;
 		}
 	}
 
 	// weight importance of combat power vs static units (i.e. enemy defences) based on current pressure
-	const float combatPowerVsStatic = (combatPowerVsTargetType.GetValue(ETargetType::SURFACE) + combatPowerVsTargetType.GetValue(ETargetType::FLOATER)) * 1.25f * (1.0f - m_estimatedPressureByEnemies);
-	combatPowerVsTargetType.SetValue(ETargetType::STATIC, combatPowerVsStatic);
+	const float combatPowerVsStatic = (combatPowerVsTargetType[ETargetType::SURFACE] + combatPowerVsTargetType[ETargetType::FLOATER]) * 1.25f * (1.0f - m_estimatedPressureByEnemies);
+	combatPowerVsTargetType[ETargetType::STATIC] = combatPowerVsStatic;
 
-	//for(const auto& targetType : AAITargetType::m_targetTypes)
-	//	ai->Log("%s: -> %f   ", AAITargetType(targetType).GetName().c_str(), combatPowerVsTargetType.GetValue(targetType) );
-	//ai->Log("\n");
+	for(const auto& targetType : AAITargetType::m_targetTypes)
+		ai->Log("%s: -> %f   ", AAITargetType(targetType).GetName().c_str(), combatPowerVsTargetType[targetType] );
+	ai->Log("\n");
 
 	return combatPowerVsTargetType;
 }
@@ -701,7 +689,7 @@ UnitSelectionCriteria AAIBrain::DetermineCombatUnitSelectionCriteria() const
 float AAIBrain::GetAttacksBy(const AAITargetType& targetType, const GamePhase& gamePhase) const
 {
 	return (  0.3f * s_attackedByRates.GetAttackedByRate(gamePhase, targetType) 
-	        + 0.7f * m_recentlyAttackedByRates.GetValueOfTargetType(targetType) );
+	        + 0.7f * m_recentlyAttackedByRates[targetType] );
 }
 
 void AAIBrain::UpdatePressureByEnemy(const SectorMap& sectors)

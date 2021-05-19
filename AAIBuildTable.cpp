@@ -315,18 +315,6 @@ UnitDefId AAIBuildTable::GetMetalMaker(int side, float cost, float efficiency, f
 	return selectedMetalMaker;
 }
 
-void AAIBuildTable::DetermineCombatPowerWeights(MobileTargetTypeValues& combatPowerWeights, const AAIMapType& mapType) const
-{
-	combatPowerWeights.SetValueForTargetType(ETargetType::AIR,     0.1f + s_attackedByRates.GetAttackedByRateUntilEarlyPhase(mapType, ETargetType::AIR));
-	combatPowerWeights.SetValueForTargetType(ETargetType::SURFACE, 1.0f + s_attackedByRates.GetAttackedByRateUntilEarlyPhase(mapType, ETargetType::SURFACE));
-
-	if(!mapType.IsLand())
-	{
-		combatPowerWeights.SetValueForTargetType(ETargetType::FLOATER,   1.0f + s_attackedByRates.GetAttackedByRateUntilEarlyPhase(mapType, ETargetType::FLOATER));
-		combatPowerWeights.SetValueForTargetType(ETargetType::SUBMERGED, 0.75f + s_attackedByRates.GetAttackedByRateUntilEarlyPhase(mapType, ETargetType::SUBMERGED));
-	}
-}
-
 Buildqueue AAIBuildTable::DetermineBuildqueue(UnitDefId unitDefId)
 {
 	Buildqueue selectedBuildqueue;
@@ -485,43 +473,43 @@ void AAIBuildTable::CalculateFactoryRating(FactoryRatingInputData& ratingData, c
 	// go through buildoptions to determine input values for calculation of factory rating
 	//-----------------------------------------------------------------------------------------------------------------
 
-	for(auto unit = ai->s_buildTree.GetCanConstructList(factoryDefId).begin(); unit != ai->s_buildTree.GetCanConstructList(factoryDefId).end(); ++unit)
+	for(const auto unit : ai->s_buildTree.GetCanConstructList(factoryDefId))
 	{
-		const TargetTypeValues& combatPowerOfUnit = ai->s_buildTree.GetCombatPower(*unit);
+		const TargetTypeValues& combatPowerOfUnit = ai->s_buildTree.GetCombatPower(unit);
 
-		switch(ai->s_buildTree.GetUnitCategory(*unit).GetUnitCategory())
+		switch(ai->s_buildTree.GetUnitCategory(unit).GetUnitCategory())
 		{
 			case EUnitCategory::GROUND_COMBAT:
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::SURFACE, combatPowerOfUnit.GetValue(ETargetType::SURFACE));
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::AIR,     combatPowerOfUnit.GetValue(ETargetType::AIR));
+				combatPowerOfConstructedUnits[ETargetType::SURFACE] += combatPowerOfUnit.GetValue(ETargetType::SURFACE);
+				combatPowerOfConstructedUnits[ETargetType::AIR]     += combatPowerOfUnit.GetValue(ETargetType::AIR);
 				++combatUnits;
 				break;
 			case EUnitCategory::AIR_COMBAT:     // same calculation as for hover
 			case EUnitCategory::HOVER_COMBAT:
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::SURFACE, combatPowerOfUnit.GetValue(ETargetType::SURFACE));
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::AIR,     combatPowerOfUnit.GetValue(ETargetType::AIR));
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::FLOATER, combatPowerOfUnit.GetValue(ETargetType::FLOATER));
+				combatPowerOfConstructedUnits[ETargetType::SURFACE] += combatPowerOfUnit.GetValue(ETargetType::SURFACE);
+				combatPowerOfConstructedUnits[ETargetType::AIR]     += combatPowerOfUnit.GetValue(ETargetType::AIR);
+				combatPowerOfConstructedUnits[ETargetType::FLOATER] += combatPowerOfUnit.GetValue(ETargetType::FLOATER);
 				++combatUnits;
 				break;
 			case EUnitCategory::SEA_COMBAT:
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::SURFACE,   combatPowerOfUnit.GetValue(ETargetType::SURFACE));
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::AIR,       combatPowerOfUnit.GetValue(ETargetType::AIR));
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::FLOATER,   combatPowerOfUnit.GetValue(ETargetType::FLOATER));
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::SUBMERGED, combatPowerOfUnit.GetValue(ETargetType::SUBMERGED));
+				combatPowerOfConstructedUnits[ETargetType::SURFACE]   += combatPowerOfUnit.GetValue(ETargetType::SURFACE);
+				combatPowerOfConstructedUnits[ETargetType::AIR]       += combatPowerOfUnit.GetValue(ETargetType::AIR);
+				combatPowerOfConstructedUnits[ETargetType::FLOATER]   += combatPowerOfUnit.GetValue(ETargetType::FLOATER);
+				combatPowerOfConstructedUnits[ETargetType::SUBMERGED] += combatPowerOfUnit.GetValue(ETargetType::SUBMERGED);
 				++combatUnits;
 				break;
 			case EUnitCategory::SUBMARINE_COMBAT:
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::FLOATER,   combatPowerOfUnit.GetValue(ETargetType::FLOATER));
-				combatPowerOfConstructedUnits.AddValueForTargetType(ETargetType::SUBMERGED, combatPowerOfUnit.GetValue(ETargetType::SUBMERGED));
+				combatPowerOfConstructedUnits[ETargetType::FLOATER]   += combatPowerOfUnit.GetValue(ETargetType::FLOATER);
+				combatPowerOfConstructedUnits[ETargetType::SUBMERGED] += combatPowerOfUnit.GetValue(ETargetType::SUBMERGED);
 				++combatUnits;
 				break;
 			case EUnitCategory::MOBILE_CONSTRUCTOR:
-				if( ai->s_buildTree.GetMovementType(*unit).IsMobileSea() )
+				if( ai->s_buildTree.GetMovementType(unit).IsMobileSea() )
 				{
 					if(considerWater)
 						ratingData.canConstructBuilder = true;
 				}
-				else if(ai->s_buildTree.GetMovementType(*unit).IsGround() )
+				else if(ai->s_buildTree.GetMovementType(unit).IsGround() )
 				{
 					if(considerLand)
 						ratingData.canConstructBuilder = true;
@@ -532,12 +520,12 @@ void AAIBuildTable::CalculateFactoryRating(FactoryRatingInputData& ratingData, c
 				}
 				break;
 			case EUnitCategory::SCOUT:
-				if( ai->s_buildTree.GetMovementType(*unit).IsMobileSea() )
+				if( ai->s_buildTree.GetMovementType(unit).IsMobileSea() )
 				{
 					if(considerWater)
 						ratingData.canConstructScout = true;
 				}
-				else if(ai->s_buildTree.GetMovementType(*unit).IsGround() )
+				else if(ai->s_buildTree.GetMovementType(unit).IsGround() )
 				{
 					if(considerLand)
 						ratingData.canConstructScout = true;

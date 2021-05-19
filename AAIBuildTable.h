@@ -135,10 +135,6 @@ public:
 	//! @brief Updates counters for requested constructors for units that can be built by given construction unit
 	void UnfinishedConstructorKilled(UnitDefId constructor);
 
-	//! @brief Determines the weight factor for every combat unit category based on map type and how often AI had been attacked by 
-	//!        this category in the first phase of the game in the past
-	void DetermineCombatPowerWeights(MobileTargetTypeValues& combatPowerWeights, const AAIMapType& mapType) const;
-
 	//! @brief Updates counters/buildqueue if a buildorder for a certain factory has been given
 	void ConstructionOrderForFactoryGiven(const UnitDefId& factoryDefId)
 	{

@@ -1593,7 +1593,7 @@ void AAIMap::UpdateEnemyUnitsInLOS()
 				if(category.IsCombatUnit())
 				{
 					const AAITargetType& targetType = ai->s_buildTree.GetTargetType(defId);
-					spottedEnemyCombatUnitsByTargetType.AddValueForTargetType(targetType, 1.0f);
+					spottedEnemyCombatUnitsByTargetType[targetType] += 1.0f;
 				}
 			}
 		}

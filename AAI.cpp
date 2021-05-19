@@ -785,8 +785,8 @@ void AAI::EnemyDestroyed(int enemy, int attacker)
 	if(UnitId(attacker).IsValid())
 	{
 		// get unit's id
-		const UnitDef* defKilled   = m_aiCallback->GetUnitDef(enemy);
-		const UnitDef* defAttacker = m_aiCallback->GetUnitDef(attacker);
+		const springLegacyAI::UnitDef* defKilled   = m_aiCallback->GetUnitDef(enemy);
+		const springLegacyAI::UnitDef* defAttacker = m_aiCallback->GetUnitDef(attacker);
 
 		if (defAttacker && defKilled)
 			s_buildTree.UpdateCombatPowerStatistics(UnitDefId(defAttacker->id), UnitDefId(defKilled->id));

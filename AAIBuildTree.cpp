@@ -94,11 +94,11 @@ bool AAIBuildTree::LoadCombatPowerOfUnits(FILE* inputFile)
 	{
 		fscanf(inputFile, "%f %f %f %f %f", &inputValues[0], &inputValues[1], &inputValues[2], &inputValues[3], &inputValues[4]);
 	
-		m_combatPowerOfUnits[id].SetValue(ETargetType::SURFACE,   inputValues[0]);
-		m_combatPowerOfUnits[id].SetValue(ETargetType::AIR,       inputValues[1]);
-		m_combatPowerOfUnits[id].SetValue(ETargetType::FLOATER,   inputValues[2]);
-		m_combatPowerOfUnits[id].SetValue(ETargetType::SUBMERGED, inputValues[3]);
-		m_combatPowerOfUnits[id].SetValue(ETargetType::STATIC,    inputValues[4]);
+		m_combatPowerOfUnits[id][ETargetType::SURFACE]   = inputValues[0];
+		m_combatPowerOfUnits[id][ETargetType::AIR]       = inputValues[1];
+		m_combatPowerOfUnits[id][ETargetType::FLOATER]   = inputValues[2];
+		m_combatPowerOfUnits[id][ETargetType::SUBMERGED] = inputValues[3];
+		m_combatPowerOfUnits[id][ETargetType::STATIC]    = inputValues[4];
 	}
 
 	UpdateUnitTypesOfCombatUnits();
@@ -211,7 +211,7 @@ void AAIBuildTree::InitCombatPowerOfUnits(springLegacyAI::IAICallback* cb)
 				}
 
 				const float targetableUnitsRatio = (totalNumberOfUnits > 0) ? static_cast<float>(numberOfTargetableUnits) / static_cast<float>(totalNumberOfUnits) : 1.0f;
-				combatPower.SetValue(targetType, AAIConstants::noValidTargetInitialCombatPower + power * targetableUnitsRatio);	
+				combatPower[targetType] = AAIConstants::noValidTargetInitialCombatPower + power * targetableUnitsRatio;	
 			}
 
 			m_combatPowerOfUnits[id].SetValues(combatPower);

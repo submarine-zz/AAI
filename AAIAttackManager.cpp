@@ -87,14 +87,14 @@ void AAIAttackManager::TryToLaunchAttack(int availableAttackId, AAIThreatMap& th
 
 	for(const auto group : availableAssaultGroupsGlobal)
 	{
-		numberOfAssaultGroupsOfTargetType.AddValueForTargetType(group->GetTargetType(), 1.0f);
+		numberOfAssaultGroupsOfTargetType[group->GetTargetType()] += 1.0f;
 	}
 
 	for(size_t continent = 0; continent < availableAssaultGroupsOnContinent.size(); ++continent)
 	{
 		for(const auto group : availableAssaultGroupsOnContinent[continent])
 		{
-			numberOfAssaultGroupsOfTargetType.AddValueForTargetType(group->GetTargetType(), 1.0f);
+			numberOfAssaultGroupsOfTargetType[group->GetTargetType()] += 1.0f;
 		}
 	}
 
@@ -104,9 +104,9 @@ void AAIAttackManager::TryToLaunchAttack(int availableAttackId, AAIThreatMap& th
 
 	std::list<AAITargetType> attackerTargetTypes;
 
-	for(auto targetType : AAITargetType::m_mobileTargetTypes)
+	for(const auto targetType : AAITargetType::m_mobileTargetTypes)
 	{
-		if(numberOfAssaultGroupsOfTargetType.GetValueOfTargetType(targetType) > 0)
+		if(numberOfAssaultGroupsOfTargetType[targetType] > 0)
 			attackerTargetTypes.push_back(targetType);
 	}
 
@@ -135,7 +135,7 @@ void AAIAttackManager::TryToLaunchAttack(int availableAttackId, AAIThreatMap& th
 			attack->AddGroupsOfTargetType(availableAssaultGroupsGlobal, targetType);
 
 			// add anti air units if necessary
-			if(    (ai->Brain()->m_maxSpottedCombatUnitsOfTargetType.GetValueOfTargetType(ETargetType::AIR) > 0.2f)
+			if(    (ai->Brain()->m_maxSpottedCombatUnitsOfTargetType[ETargetType::AIR] > 0.2f)
 				|| (ai->Brain()->GetRecentAttacksBy(ETargetType::AIR) > 0.9f) )
 			{
 				std::list<AAIGroup*> antiAirGroups;

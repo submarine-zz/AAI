@@ -154,13 +154,13 @@ public:
 	float GetEnemyCombatPowerVsUnits(const MobileTargetTypeValues& unitsOfTargetType) const;
 
 	//! @brief Get total (mobile + static) defence power vs given target type
-	float GetEnemyCombatPower(const AAITargetType& targetType) const { return m_enemyStaticCombatPower.GetValueOfTargetType(targetType) + m_enemyMobileCombatPower.GetValueOfTargetType(targetType); }
+	float GetEnemyCombatPower(const AAITargetType& targetType) const { return m_enemyStaticCombatPower[targetType] + m_enemyMobileCombatPower[targetType]; }
 
 	//! @brief Returns combat power of own/allied static defences against given target type
-	float GetFriendlyStaticDefencePower(const AAITargetType& targetType) const { return m_friendlyStaticCombatPower.GetValueOfTargetType(targetType); }
+	float GetFriendlyStaticDefencePower(const AAITargetType& targetType) const { return m_friendlyStaticCombatPower[targetType]; }
 
 	//! @brief Returns cmbat power of own/allied static defences against given target type
-	float GetFriendlyCombatPower(const AAITargetType& targetType) const { return m_friendlyStaticCombatPower.GetValueOfTargetType(targetType) + m_friendlyMobileCombatPower.GetValueOfTargetType(targetType); }
+	float GetFriendlyCombatPower(const AAITargetType& targetType) const { return m_friendlyStaticCombatPower[targetType] + m_friendlyMobileCombatPower[targetType]; }
 
 	//! @brief Adds given values to friendly combat power in this sector
 	void AddFriendlyCombatPower(const TargetTypeValues& combatPower) { m_friendlyMobileCombatPower.AddCombatPower(combatPower); }
@@ -169,7 +169,7 @@ public:
 	void UpdateThreatValues(UnitDefId destroyedDefId, UnitDefId attackerDefId);
 
 	//! @brief Returns lost units in that sector
-	float GetLostUnits(const AAITargetType& targetType) const { return m_lostUnits.GetValueOfTargetType(targetType); }
+	float GetLostUnits(const AAITargetType& targetType) const { return m_lostUnits[targetType]; }
 
 	//! @brief Returns the total number (i.e. of all target types) of lost units in this sector
 	float GetTotalLostUnits() const { return m_lostUnits.CalculateSum(); }
