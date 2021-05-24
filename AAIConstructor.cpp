@@ -320,13 +320,10 @@ void AAIConstructor::GiveReclaimOrder(UnitId unitId)
 }
 
 
-void AAIConstructor::GiveConstructionOrder(UnitDefId building, const float3& pos)
+void AAIConstructor::GiveConstructionOrder(UnitDefId building, const float3& position)
 {
-	// get def and final position
-	const springLegacyAI::UnitDef *def = &ai->BuildTable()->GetUnitDef(building.id);
-
 	// give order if building can be placed at the desired position (position lies within a valid sector)
-	const bool buildingInitializationSuccessful = ai->Map()->InitBuilding(def, pos);
+	const bool buildingInitializationSuccessful = ai->Map()->InitBuilding(building, position);
 
 	if(buildingInitializationSuccessful)
 	{
@@ -338,7 +335,7 @@ void AAIConstructor::GiveConstructionOrder(UnitDefId building, const float3& pos
 		}
 
 		// set building as current task and order construction
-		m_buildPos         = pos;
+		m_buildPos         = position;
 		m_constructedDefId = building;
 
 		m_activity.SetActivity(EConstructorActivity::HEADING_TO_BUILDSITE);
@@ -350,7 +347,7 @@ void AAIConstructor::GiveConstructionOrder(UnitDefId building, const float3& pos
 		ai->GetAICallback()->GiveOrder(m_myUnitId.id, &c);
 
 		// increase number of active units of that type/category
-		ai->BuildTable()->units_dynamic[def->id].requested += 1;
+		ai->BuildTable()->units_dynamic[building.id].requested += 1;
 
 		ai->UnitTable()->UnitRequested(ai->s_buildTree.GetUnitCategory(building));
 

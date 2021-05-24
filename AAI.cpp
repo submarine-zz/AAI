@@ -379,8 +379,8 @@ void AAI::UnitCreated(int unit, int builder)
 
 		if (s_buildTree.GetMovementType(unitDefId).IsStatic())
 		{
-			const float3 pos = m_aiCallback->GetUnitPos(unit);
-			m_map->InitBuilding(def, pos);
+			const float3 position = m_aiCallback->GetUnitPos(unit);
+			m_map->InitBuilding(unitDefId, position);
 		}
 	}
 	//-----------------------------------------------------------------------------------------------------------------
@@ -673,7 +673,7 @@ void AAI::UnitDestroyed(int unit, int attacker)
 			}
 			
 			// unblock cells in buildmap
-			m_map->UpdateBuildMap(pos, def, false);
+			m_map->UpdateBuildMap(pos, unitDefId, false);
 
 			// if no buildings left in that sector, remove from base sectors
 			/*if (map->sector[x][y].own_structures == 0 && brain->sectors[0].size() > 2)

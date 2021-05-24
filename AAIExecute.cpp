@@ -1963,9 +1963,7 @@ void AAIExecute::ConstructionFailed(const float3& buildsite, UnitDefId unitDefId
 		ai->BuildTable()->UnfinishedConstructorKilled(unitDefId);
 	}
 
-	// update buildmap of sector
-	const springLegacyAI::UnitDef *def = &ai->BuildTable()->GetUnitDef(unitDefId.id);
-	ai->Map()->UpdateBuildMap(buildsite, def, false);
+	ai->Map()->UpdateBuildMap(buildsite, unitDefId, false);
 }
 
 AAIGroup* AAIExecute::GetClosestGroupForDefence(const AAITargetType& attackerTargetType, const float3& pos, int importance) const

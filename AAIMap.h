@@ -113,10 +113,10 @@ public:
 
 	//! @brief Updates buildmap & defence map (for static defences) and building data of target sector 
 	//!        Return true if building will be placed at a valid position, i.e. inside sectors
-	bool InitBuilding(const springLegacyAI::UnitDef *def, const float3& position);
+	bool InitBuilding(const UnitDefId& unitDefId, const float3& position);
 
 	//! @brief Updates the buildmap: (un)block cells + insert/remove spaces (factory exits get some extra space)
-	void UpdateBuildMap(const float3& buildPos, const springLegacyAI::UnitDef *def, bool block);
+	void UpdateBuildMap(const float3& buildPos, const UnitDefId& unitDefId, bool block);
 
 	// returns number of cells with big slope
 	int GetCliffyCells(int xPos, int yPos, int xSize, int ySize) const;
@@ -209,7 +209,7 @@ private:
 	BuildSite CheckIfSuitableBuildSite(const UnitFootprint& footprint, const springLegacyAI::UnitDef* unitDef, const MapPos& mapPos) const;
 
 	//! @brief Converts the given position (in map coordinates) to a position in buildmap coordinates
-	void Pos2BuildMapPos(float3* position, const springLegacyAI::UnitDef* def) const;
+	MapPos Pos2BuildMapPos(const float3& position, const UnitFootprint& footprint) const;
 
 	// krogothe's metal spot finder
 	void DetectMetalSpots();

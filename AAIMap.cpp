@@ -612,26 +612,20 @@ int AAIMap::DetermineSmartContinentID(float3 pos, const AAIMovementType& moveTyp
 }
 
 // converts unit positions to cell coordinates
-void AAIMap::Pos2BuildMapPos(float3 *position, const UnitDef* def) const
+MapPos AAIMap::Pos2BuildMapPos(const float3& position, const UnitFootprint& footprint) const
 {
-	// get cell index of middlepoint
-	int x = (int) (position->x/SQUARE_SIZE);
-	int z = (int) (position->z/SQUARE_SIZE);
+	// get cell index of middlepoint and shift to the leftmost uppermost cell
+	MapPos mapPos(  static_cast<int>(position.x/SQUARE_SIZE) - footprint.xSize/2, 
+					static_cast<int>(position.z/SQUARE_SIZE) - footprint.ySize/2 );
 
-	// shift to the leftmost uppermost cell
-	x -= def->xsize/2;
-	z -= def->zsize/2;
+	// ensure position lies within map
+	if(mapPos.x < 0)
+		mapPos.x = 0;
 
-	// check if pos is still in that map, otherwise retun 0
-	if(x < 0)
-		position->x = 0.0f;
-	else
-		position->x = static_cast<float>(x);
+	if(mapPos.y < 0)
+		mapPos.y = 0;
 
-	if(z < 0)
-		position->z = 0.0f;
-	else
-		position->z = static_cast<float>(z);
+	return mapPos;
 }
 
 void AAIMap::ConvertPositionToFinalBuildsite(float3& buildsite, const UnitFootprint& footprint) const
@@ -1149,7 +1143,7 @@ void AAIMap::BlockTiles(int xPos, int yPos, int width, int height, bool block)
 	}
 }
 
-bool AAIMap::InitBuilding(const UnitDef *def, const float3& position)
+bool AAIMap::InitBuilding(const UnitDefId& unitDefId, const float3& position)
 {
 	AAISector* sector = GetSectorOfPos(position);
 
@@ -1158,11 +1152,9 @@ bool AAIMap::InitBuilding(const UnitDef *def, const float3& position)
 		return false;
 	else
 	{
-		// update buildmap
-		UpdateBuildMap(position, def, true);
+		UpdateBuildMap(position, unitDefId, true);
 
 		// update defence map (if necessary)
-		UnitDefId unitDefId(def->id);
 		if(ai->s_buildTree.GetUnitCategory(unitDefId).IsStaticDefence())
 			AddOrRemoveStaticDefence(position, unitDefId, true);
 
@@ -1173,30 +1165,29 @@ bool AAIMap::InitBuilding(const UnitDef *def, const float3& position)
 	}
 }
 	
-void AAIMap::UpdateBuildMap(const float3& buildPos, const UnitDef *def, bool block)
+void AAIMap::UpdateBuildMap(const float3& buildPos, const UnitDefId& unitDefId, bool block)
 {
-	const bool factory = ai->s_buildTree.GetUnitType(UnitDefId(def->id)).IsFactory();
+	const UnitFootprint& footprint = ai->s_buildTree.GetFootprint(unitDefId);
 	
-	float3 buildMapPos = buildPos;
-	Pos2BuildMapPos(&buildMapPos, def);
+	const MapPos buildMapPos = Pos2BuildMapPos(buildPos, footprint);
 
 	// remove spaces before freeing up buildspace
 	if(!block)
-		CheckRows(buildMapPos.x, buildMapPos.z, def->xsize, def->zsize, block);
+		CheckRows(buildMapPos.x, buildMapPos.y, footprint.xSize, footprint.ySize, block);
 
-	ChangeBuildMapOccupation(buildMapPos.x, buildMapPos.z, def->xsize, def->zsize, block);
+	ChangeBuildMapOccupation(buildMapPos.x, buildMapPos.y, footprint.xSize, footprint.ySize, block);
 
-	if(factory)
+	if( ai->s_buildTree.GetUnitType(unitDefId).IsFactory() )
 	{
 		// extra space for factories to keep exits clear
-		BlockTiles(buildMapPos.x,              buildMapPos.z - cfg->Y_SPACE ,          def->xsize, cfg->Y_SPACE, block);
-		BlockTiles(buildMapPos.x + def->xsize, buildMapPos.z - cfg->Y_SPACE ,          cfg->X_SPACE, def->zsize + 2*cfg->Y_SPACE, block);
-		BlockTiles(buildMapPos.x,              buildMapPos.z + def->zsize, def->xsize, cfg->Y_SPACE , block);
+		BlockTiles(buildMapPos.x,                   buildMapPos.y - cfg->Y_SPACE ,   footprint.xSize, cfg->Y_SPACE,                     block);
+		BlockTiles(buildMapPos.x + footprint.xSize, buildMapPos.y - cfg->Y_SPACE ,   cfg->X_SPACE,    footprint.ySize + 2*cfg->Y_SPACE, block);
+		BlockTiles(buildMapPos.x,                   buildMapPos.y + footprint.ySize, footprint.xSize, cfg->Y_SPACE,                     block);
 	}
 
 	// add spaces after blocking buildspace
 	if(block)
-		CheckRows(buildMapPos.x, buildMapPos.z, def->xsize, def->zsize, block);
+		CheckRows(buildMapPos.x, buildMapPos.y, footprint.xSize, footprint.ySize, block);
 }
 
 UnitFootprint AAIMap::DetermineRequiredFreeBuildspace(UnitDefId unitDefId) const
@@ -1355,7 +1346,6 @@ void AAIMap::DetectMetalSpots()
 //	float AverageMetal;
 
 	AAIMetalSpot temp;
-	float3 pos;
 
 	int MinMetalForSpot = 30; // from 0-255, the minimum percentage of metal a spot needs to have
 							//from the maximum to be saved. Prevents crappier spots in between taken spaces.
@@ -1432,21 +1422,18 @@ void AAIMap::DetectMetalSpots()
 		{
 			//pos.x = coordx * 2 * SQUARE_SIZE;
 			//pos.z = coordy * 2 * SQUARE_SIZE;	
-			pos = ConvertMapPosToUnitPos(MapPos(2*coordx, 2*coordy), largestExtractorFootprint);
-			ConvertPositionToFinalBuildsite(pos, largestExtractorFootprint);
+			temp.pos = ConvertMapPosToUnitPos(MapPos(2*coordx, 2*coordy), largestExtractorFootprint);
+			ConvertPositionToFinalBuildsite(temp.pos, largestExtractorFootprint);
 
-			pos.y = ai->GetAICallback()->GetElevation(pos.x, pos.z);
+			temp.pos.y = ai->GetAICallback()->GetElevation(temp.pos.x, temp.pos.z);
 
 			temp.amount = TempMetal * ai->GetAICallback()->GetMaxMetal() * MaxMetal / 255.0f;
 			temp.occupied = false;
-			temp.pos = pos;
 
 			//if(ai->Getcb()->CanBuildAt(def, pos))
 			//{
-				Pos2BuildMapPos(&pos, def);
-				MapPos mapPos(pos.x, pos.z);
+				const MapPos mapPos = Pos2BuildMapPos(temp.pos, largestExtractorFootprint);
 
-				//! @todo Check if this is correct or results in unnecessary shifts / rounding errors.
 				if( (mapPos.x >= 2) && (mapPos.y >= 2) && (mapPos.x < xMapSize-2) && (mapPos.y < yMapSize-2) )
 				{
 					if(CanBuildAt(mapPos, largestExtractorFootprint))
