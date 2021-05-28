@@ -18,6 +18,7 @@
 #include "AAIMap.h"
 #include "AAIGroup.h"
 #include "AAISector.h"
+#include "AAIHelperFunctions.h"
 
 #include "LegacyCpp/UnitDef.h"
 #include "LegacyCpp/CommandQueue.h"
@@ -990,17 +991,16 @@ BuildOrderStatus AAIExecute::BuildStationaryDefenceVS(const AAITargetType& targe
 	//-----------------------------------------------------------------------------------------------------------------
 	// dont start construction of further defences if expensive defences are already under construction in this sector
 	//-----------------------------------------------------------------------------------------------------------------
-	for(const auto task : ai->GetBuildTasks())
+	/*for(const auto task : ai->GetBuildTasks())
 	{
 		if(task->IsExpensiveUnitOfCategoryInSector(ai, EUnitCategory::STATIC_DEFENCE, dest) )
 			return BuildOrderStatus::SUCCESSFUL;
-	}
+	}*/
 
 	//-----------------------------------------------------------------------------------------------------------------
 	// determine criteria for selection of static defence and its buildsite
 	//-----------------------------------------------------------------------------------------------------------------
-	StaticDefenceSelectionCriteria selectionCriteria(targetType);
-	ai->Brain()->DetermineStaticDefenceSelectionCriteria(selectionCriteria, dest);
+	const StaticDefenceSelectionCriteria selectionCriteria = ai->Brain()->DetermineStaticDefenceSelectionCriteria(dest, targetType);
 
 	//-----------------------------------------------------------------------------------------------------------------
 	// try construction of static defence according to determined criteria
@@ -1460,13 +1460,20 @@ void AAIExecute::CheckDefences()
 		|| (ai->UnitTable()->GetNumberOfFutureUnitsOfCategory(EUnitCategory::STATIC_DEFENCE) > 2) )
 		return;
 
+	const MobileTargetTypeValues enemyThreat   = ai->Brain()->DetermineThreatByTargetType();
+
+	const ThreatByTargetType     highestThreat = AAIHelperFunctions::DetermineHighestThreat(enemyThreat);
+
+	const float urgencyOfStaticDefence = std::max(0.5f * highestThreat.Threat(), 8.0f);
+
+	SetConstructionUrgencyIfHigher(EUnitCategory::STATIC_DEFENCE, urgencyOfStaticDefence);
+
+	constexpr int maxSectorDistToBase(2);
 	const GamePhase gamePhase(ai->GetAICallback()->GetCurrentFrame());
 
-	constexpr int maxSectorDistToBase(3);
 	float highestImportance(0.0f);
-
-	AAISector *first(nullptr), *second(nullptr);
-	AAITargetType targetType1, targetType2;
+	AAISector *mostUrgentSector(nullptr);
+	AAITargetType targetType1;
 
 	for(int dist = 1; dist <= maxSectorDistToBase; ++dist)
 	{
@@ -1478,37 +1485,19 @@ void AAIExecute::CheckDefences()
 
 			if(importance > highestImportance)
 			{
-				second = first;
-				targetType2 = targetType1;
-
-				first = sector;
-				targetType1 = targetType;
-
+				mostUrgentSector  = sector;
+				targetType1       = targetType;
 				highestImportance = importance;
 			}
 		}
 	}
 
-	if(first)
+	if(mostUrgentSector)
 	{
-		// if no builder available retry later
-		BuildOrderStatus status = BuildStationaryDefenceVS(targetType1, first);
-
-		if(status == BuildOrderStatus::NO_BUILDER_AVAILABLE)
-		{
-			const float urgencyOfStaticDefence = 0.03f + 1.0f / ( static_cast<float>(first->GetNumberOfBuildings(EUnitCategory::STATIC_DEFENCE)) + 0.5f);
-
-			SetConstructionUrgencyIfHigher(EUnitCategory::STATIC_DEFENCE, urgencyOfStaticDefence);
-
-			m_sectorToBuildNextDefence = first;
-			m_nextDefenceVsTargetType = targetType1;
-		}
-		else if(status == BuildOrderStatus::NO_BUILDSITE_FOUND)
-			first->FailedToConstructStaticDefence();
+		m_sectorToBuildNextDefence = mostUrgentSector;
+		m_nextDefenceVsTargetType = targetType1;
 	}
 
-	if(second)
-		BuildStationaryDefenceVS(targetType2, second);
 }
 
 void AAIExecute::CheckConstructionOfNanoTurret()

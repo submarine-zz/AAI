@@ -54,8 +54,6 @@ struct ScoutSelectionCriteria
 //! Criteria used for selection of static defences
 struct StaticDefenceSelectionCriteria
 {
-	StaticDefenceSelectionCriteria(const AAITargetType& targetType) : targetType(targetType) {}
-
 	StaticDefenceSelectionCriteria(const AAITargetType& targetType, float combatPower, float range, float cost, float buildtime, float terrain, int randomness) : 
 		targetType(targetType), combatPower(combatPower), range(range), cost(cost), buildtime(buildtime), terrain(terrain), randomness(randomness) {}
 

@@ -423,4 +423,20 @@ private:
 	std::array<float, AAITargetType::numberOfMobileTargetTypes> m_values;
 };
 
+class ThreatByTargetType
+{
+public:
+	ThreatByTargetType(float threat, ETargetType targetType) : m_targetType(targetType), m_threat(threat) { }
+
+	ETargetType&       TargetType()       { return m_targetType; }
+	const ETargetType& TargetType() const { return m_targetType; }
+
+	float&             Threat()           { return m_threat; }
+	const float&       Threat()     const { return m_threat; }
+
+private:
+	ETargetType  m_targetType;
+
+	float        m_threat;
+};
 #endif

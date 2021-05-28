@@ -117,6 +117,9 @@ public:
 	//! @brief Determines the construction priority of the given factory
 	float DetermineConstructionUrgencyOfFactory(UnitDefId factoryDefId, const TargetTypeValues& combatPowerVsTargetType) const;
 
+	//! @brief Determines the preceived threat (ranging from 0 (lowest) to 25 (highest)) for each target type
+	MobileTargetTypeValues DetermineThreatByTargetType() const;
+
 	//! @brief Determines the combat efficiciency vs different target types for the selection of the next combat unit
 	TargetTypeValues  DetermineCombatPowerVsTargetType() const;
 
@@ -133,7 +136,7 @@ public:
 	ExtractorSelectionCriteria  DetermineExtractorSelectionCriteria() const;
 
 	//! @brief Determine the selection criteria for static defences for the given sector
-	void DetermineStaticDefenceSelectionCriteria(StaticDefenceSelectionCriteria& selectionCriteria, const AAISector* sector) const;
+	StaticDefenceSelectionCriteria DetermineStaticDefenceSelectionCriteria(const AAISector* sector, const AAITargetType& targetType) const;
 
 	//! A list of sectors with ceratain distance (in number of sectors) to base; 0 = sectors the ai uses to build its base, 1 = direct neighbours etc.
 	std::vector< std::list<AAISector*> > m_sectorsInDistToBase;

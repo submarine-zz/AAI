@@ -17,6 +17,7 @@
 #include "AAIMap.h"
 #include "AAIGroup.h"
 #include "AAISector.h"
+#include "AAIHelperFunctions.h"
 
 #include <unordered_map>
 
@@ -453,7 +454,7 @@ void AAIBrain::BuildUnits()
 			// bomber preference ratio between 0 (no targets or high enemy pressure) and 0.9 (low enemy pressure and many possible targets for bombing run) 
 			const float bomberRatio = std::max(ai->AirForceMgr()->GetNumberOfBombTargets() - m_estimatedPressureByEnemies - 0.1f, 0.0f);
 
-			ai->Log("Air selected - bomb targets: %f      enemy pressure: %f\n", ai->AirForceMgr()->GetNumberOfBombTargets(), m_estimatedPressureByEnemies); 
+			ai->Log("Air selected - bomb targets: %f      enemy pressure: %f   bomber ratio: %f\n", ai->AirForceMgr()->GetNumberOfBombTargets(), m_estimatedPressureByEnemies, bomberRatio); 
 
 			if(IsRandomNumberBelow(bomberRatio))
 			{
@@ -469,13 +470,12 @@ void AAIBrain::BuildUnits()
 	}
 }
 
-TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
+MobileTargetTypeValues AAIBrain::DetermineThreatByTargetType() const
 {
-	TargetTypeValues combatPowerVsTargetType;
-
 	//-----------------------------------------------------------------------------------------------------------------
 	// Calculate threat by and defence vs. the different combat categories
 	//-----------------------------------------------------------------------------------------------------------------
+
 	MobileTargetTypeValues attackedByCategory;
 	StatisticalData attackedByCatStatistics;
 	StatisticalData unitsSpottedStatistics;
@@ -497,10 +497,10 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 	defenceStatistics.Finalize();
 
 	//-----------------------------------------------------------------------------------------------------------------
-	// Determine urgency to counter each of the different combat categories
+	// Determine threat by target type based on map -ranges between 0 (no threat to be expected) and 0.3
 	//-----------------------------------------------------------------------------------------------------------------
 
-	const float mapFactor(0.25f);
+	const float mapFactor(0.3f);
 	TargetTypeValues threatByMap(0.0f);
 
 	threatByMap[ETargetType::AIR] = mapFactor;
@@ -518,67 +518,69 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 	// Calculate urgency to counter each target category (attack pressure by this target vs. defence power agaibnst this target type)
 	//-----------------------------------------------------------------------------------------------------------------
 
-	TargetTypeValues threatByTargetType;
-	float highestThreat(0.0f);
-	ETargetType typeHighestThreat;
+	MobileTargetTypeValues threatByTargetType;
 
 	for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
 	{
+		// sum can be between 0 and 2.5
 		const float sum =   threatByMap.GetValue(targetType) 
-						  + attackedByCatStatistics.GetDeviationFromZero( attackedByCategory[targetType] ) 
-						  + unitsSpottedStatistics.GetDeviationFromZero( m_maxSpottedCombatUnitsOfTargetType[targetType] );
+						  + 1.1f * attackedByCatStatistics.GetDeviationFromZero( attackedByCategory[targetType] ) 
+						  + 1.1f * unitsSpottedStatistics.GetDeviationFromZero( m_maxSpottedCombatUnitsOfTargetType[targetType] );
 
+		// threat between 0 (no perceived threat) and 25 (highest perceived threat) 
 		const float threat = sum / (0.1f + defenceStatistics.GetDeviationFromZero(m_totalMobileCombatPower[targetType]));
-		combatPowerVsTargetType[targetType] = threat;
+		threatByTargetType[targetType] = threat;
 
-		ai->Log("%s: threat: %f  def: %f   ", AAITargetType(targetType).GetName().c_str(), sum, defenceStatistics.GetDeviationFromMax(m_totalMobileCombatPower[targetType]));
-
-		if(threat > highestThreat)
-		{
-			highestThreat     = threat;
-			typeHighestThreat = targetType;
-		}
+		//ai->Log("%s: threat: %f  def: %f   ", AAITargetType(targetType).GetName().c_str(), sum, defenceStatistics.GetDeviationFromMax(m_totalMobileCombatPower[targetType]));
 	}
 
-	ai->Log("\n");
+	return threatByTargetType;
+}
+
+TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
+{
+	//-----------------------------------------------------------------------------------------------------------------
+	// determine highest threat
+	//-----------------------------------------------------------------------------------------------------------------
+	const MobileTargetTypeValues threatByTargetType = DetermineThreatByTargetType();
+
+	const ThreatByTargetType highestEnemyThreat     = AAIHelperFunctions::DetermineHighestThreat(threatByTargetType);
 
 	//-----------------------------------------------------------------------------------------------------------------
-	// set combat power vs less important target types to zero depending on target type that is currently perceived as highest threat
+	// set desired combat power depending on highest threat
 	//-----------------------------------------------------------------------------------------------------------------
 
-	switch(typeHighestThreat)
+	TargetTypeValues combatPowerVsTargetType(0.0f);
+
+	switch(highestEnemyThreat.TargetType())
 	{
 		case ETargetType::SURFACE:
 		{
-			combatPowerVsTargetType[ETargetType::AIR]       = 0.0f;
-			combatPowerVsTargetType[ETargetType::FLOATER]   = 0.0f;
-			combatPowerVsTargetType[ETargetType::SUBMERGED] = 0.0f;
+			combatPowerVsTargetType[ETargetType::SURFACE]   = threatByTargetType[ETargetType::SURFACE];
 			break;
 		}
 		case ETargetType::AIR:
 		{
-			combatPowerVsTargetType[ETargetType::SURFACE]   = 0.0f;
-			combatPowerVsTargetType[ETargetType::FLOATER]   = 0.0f;
-			combatPowerVsTargetType[ETargetType::SUBMERGED] = 0.0f;
+			combatPowerVsTargetType[ETargetType::AIR]       = threatByTargetType[ETargetType::AIR];
 			break;
 		}
 		case ETargetType::FLOATER: // fallthrough intended
 			[[fallthrough]];
 		case ETargetType::SUBMERGED:
 		{
-			combatPowerVsTargetType[ETargetType::SURFACE]  = 0.0f;
-			combatPowerVsTargetType[ETargetType::AIR]      = 0.0f;
+			combatPowerVsTargetType[ETargetType::FLOATER]   = threatByTargetType[ETargetType::FLOATER];
+			combatPowerVsTargetType[ETargetType::SUBMERGED] = threatByTargetType[ETargetType::SUBMERGED];
 			break;
 		}
 	}
 
-	// weight importance of combat power vs static units (i.e. enemy defences) based on current pressure
+	//! @todo Refine criteria - for now set combat power vs static units (i.e. enemy defences) based on current pressure
 	const float combatPowerVsStatic = (combatPowerVsTargetType[ETargetType::SURFACE] + combatPowerVsTargetType[ETargetType::FLOATER]) * 1.25f * (1.0f - m_estimatedPressureByEnemies);
 	combatPowerVsTargetType[ETargetType::STATIC] = combatPowerVsStatic;
 
-	for(const auto& targetType : AAITargetType::m_targetTypes)
-		ai->Log("%s: -> %f   ", AAITargetType(targetType).GetName().c_str(), combatPowerVsTargetType[targetType] );
-	ai->Log("\n");
+	//for(const auto& targetType : AAITargetType::m_targetTypes)
+	//	ai->Log("%s: -> %f   ", AAITargetType(targetType).GetName().c_str(), combatPowerVsTargetType[targetType] );
+	//ai->Log("\n");
 
 	return combatPowerVsTargetType;
 }
@@ -921,46 +923,47 @@ ExtractorSelectionCriteria AAIBrain::DetermineExtractorSelectionCriteria() const
 	return ExtractorSelectionCriteria(cost, extractedMetal, 0.0f);
 }
 
-void AAIBrain::DetermineStaticDefenceSelectionCriteria(StaticDefenceSelectionCriteria& selectionCriteria, const AAISector* sector) const
+StaticDefenceSelectionCriteria AAIBrain::DetermineStaticDefenceSelectionCriteria(const AAISector* sector, const AAITargetType& targetType) const
 {
 	// defence factor ranges from 0.0 (high defence power vs given target type) to 1 (no defence power)
-	const float defenceFactor    = exp(- sector->GetFriendlyStaticDefencePower(selectionCriteria.targetType) / 6.0f);
+	const float defenceFactor    = exp(- sector->GetFriendlyStaticDefencePower(targetType) / 6.0f);
 
 	// defence factor ranges from 0.0 (~ 10 static defences) to 1 (no static defences)
 	const float numberOfDefencesFactor = exp( - static_cast<float>(sector->GetNumberOfBuildings(EUnitCategory::STATIC_DEFENCE)) / 3.0f );
 
 	// income factor ranges from 1.0 (no metal income) to 0.0 (high metal income)
-	const float metalIncome = m_metalIncome.GetAverageValue();
+	const float metalIncome  = m_metalIncome.GetAverageValue();
 	const float incomeFactor = 1.0f / (0.01f * metalIncome*metalIncome + 1.0f);
 
 	// cost ranges from 0.5 (excess metal, high defence power) to 2.0 (low metal, low defence power)
-	selectionCriteria.cost        = 0.5f + incomeFactor + 0.5f * defenceFactor;
+	const float cost        = 0.5f + incomeFactor + 0.5f * defenceFactor;
 
 	// power ranges from 0.75 (low income) to 3.0 (high income, low defence power & high enemy pressure)
-	selectionCriteria.combatPower = 0.75f + 0.5f * (1.0f - incomeFactor) + 1.25f * (1.0f - numberOfDefencesFactor) + 0.5f * m_estimatedPressureByEnemies;
+	const float combatPower = 0.75f + 0.5f * (1.0f - incomeFactor) + 1.25f * (1.0f - numberOfDefencesFactor) + 0.5f * m_estimatedPressureByEnemies;
 
 	// buildtimes ranges form 0.25 (high income, low threat level) to 1.5 (low income, low defence power/high threat level)
-	selectionCriteria.buildtime = 0.25f + 0.32f * m_estimatedPressureByEnemies + defenceFactor;
+	const float buildtime = 0.25f + 0.32f * m_estimatedPressureByEnemies + defenceFactor;
 
 	// range ranges from 0.1 to 1.5, depending on ratio of units with high ranges
+	float range;
 	if( IsRandomNumberBelow(cfg->HIGH_RANGE_UNITS_RATIO) && (sector->GetNumberOfBuildings(EUnitCategory::STATIC_DEFENCE) > 1) )
 	{
 		// range in 0.5 to 1.5
-		const float range = static_cast<float>(rand()%6);
-		selectionCriteria.range = 0.5f + 0.2f * range;
+		range = 0.5f + 0.2f * static_cast<float>(rand()%6);
 	}
 	else
 	{
 		// range in 0.1 to 0.5
-		const float range = static_cast<float>(rand()%5);
-		selectionCriteria.range = 0.1f + 0.1f * range;
+		range = 0.1f + 0.1f * static_cast<float>(rand()%5);
 	}
 
 	// importance of terrain (for placement of defence) depends on range
-	selectionCriteria.terrain = 0.1f + 1.25f * selectionCriteria.range;
+	float terrain = 0.1f + 1.25f * range;
 
 	if(sector->GetDistanceToBase() > 1)
-		selectionCriteria.terrain += 1.0f;
+		terrain += 1.0f;
 
-	selectionCriteria.randomness = 3;
+	const int randomness = 3;
+
+	return StaticDefenceSelectionCriteria(targetType, combatPower, range, cost, buildtime, terrain, randomness);
 }
