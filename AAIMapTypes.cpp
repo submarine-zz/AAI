@@ -47,23 +47,47 @@ void AAIDefenceMaps::ModifyTiles(const float3& position, float maxWeaponRange, c
 	}
 }
 
+float AAIDefenceMaps::CalculateValueForArea(const MapPos& topLeft, const MapPos& bottomRight, const AAITargetType& targetType) const
+{
+	// x range will change from line to line -  y range is const
+	const int xStart = topLeft.x     / defenceMapResolution;
+	const int xEnd   = bottomRight.x / defenceMapResolution;
+	const int yStart = topLeft.y     / defenceMapResolution;
+	const int yEnd   = bottomRight.y / defenceMapResolution;
+
+	const std::vector<float>& defenceMap = m_defenceMaps[targetType.GetArrayIndex()];
+
+	float sum(0.0f);
+
+	for(int y = yStart; y < yEnd; ++y)
+	{
+		for(int x = xStart; x < xEnd; ++x)
+		{
+			const int tile = x + m_xDefenceMapSize*y;
+			sum += defenceMap[tile];
+		}
+	}
+
+	return sum;
+}
+
 void AAIDefenceMaps::AddDefence(int tile, const TargetTypeValues& combatPower)
 {
-	m_defenceMaps[AAITargetType::surfaceIndex][tile]   += combatPower.GetValue(ETargetType::SURFACE);
-	m_defenceMaps[AAITargetType::airIndex][tile]       += combatPower.GetValue(ETargetType::AIR);
-	m_defenceMaps[AAITargetType::floaterIndex][tile]   += combatPower.GetValue(ETargetType::FLOATER);
-	m_defenceMaps[AAITargetType::submergedIndex][tile] += combatPower.GetValue(ETargetType::SUBMERGED);
+	for(const auto targetType : AAITargetType::m_mobileTargetTypes)
+	{
+		const int targetTypeIndex = static_cast<int>(targetType);
+		m_defenceMaps[targetTypeIndex][tile] += combatPower[targetType];
+	}
 }
 
 void AAIDefenceMaps::RemoveDefence(int tile, const TargetTypeValues& combatPower)
 {
-	m_defenceMaps[AAITargetType::surfaceIndex][tile]   -= combatPower.GetValue(ETargetType::SURFACE);
-	m_defenceMaps[AAITargetType::airIndex][tile]       -= combatPower.GetValue(ETargetType::AIR);
-	m_defenceMaps[AAITargetType::floaterIndex][tile]   -= combatPower.GetValue(ETargetType::FLOATER);
-	m_defenceMaps[AAITargetType::submergedIndex][tile] -= combatPower.GetValue(ETargetType::SUBMERGED);
-
-	for(int targetTypeIndex = 0; targetTypeIndex < AAITargetType::numberOfMobileTargetTypes; ++targetTypeIndex)
+	for(const auto targetType : AAITargetType::m_mobileTargetTypes)
 	{
+		const int targetTypeIndex = static_cast<int>(targetType);
+
+		m_defenceMaps[targetTypeIndex][tile]  -= combatPower[targetType];
+
 		if(m_defenceMaps[targetTypeIndex][tile] < 0.0f)
 			m_defenceMaps[targetTypeIndex][tile] = 0.0f;
 	}

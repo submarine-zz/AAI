@@ -109,7 +109,7 @@ public:
 	BuildSite DetermineElevatedBuildsite(UnitDefId buildingDefId, int xStart, int xEnd, int yStart, int yEnd, float range) const;
 
 	//! @brief Determines the most suitable buidliste for the given static defence in the given sector (returns ZeroVector if no buildsite found)
-	float3 DetermineBuildsiteForStaticDefence(UnitDefId staticDefence, const AAISector* sector, const AAITargetType& targetType, float terrainModifier) const;
+	BuildSite DetermineBuildsiteForStaticDefence(UnitDefId staticDefence, const AAISector* sector, const AAITargetType& targetType, float terrainModifier) const;
 
 	//! @brief Updates buildmap & defence map (for static defences) and building data of target sector 
 	//!        Return true if building will be placed at a valid position, i.e. inside sectors
@@ -192,6 +192,9 @@ public:
 
 	//! The buildmap stores the type/occupation status of every cell;
 	static std::vector<BuildMapTileType> s_buildmap;
+
+	//! The defence maps (storing combat power by static defences vs the different mobile target types)
+	static AAIDefenceMaps s_defenceMaps;
 
 	static constexpr int ignoreContinentID = -1;
 
@@ -299,9 +302,6 @@ private:
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// static (shared with other ai players)
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	//! The defence maps (storing combat power by static defences vs the different mobile target types)
-	static AAIDefenceMaps s_defenceMaps;
 
 	//! Stores the id of the continent every tiles belongs to and additional information about continents
 	static AAIContinentMap s_continentMap;

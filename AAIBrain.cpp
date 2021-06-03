@@ -688,6 +688,11 @@ UnitSelectionCriteria AAIBrain::DetermineCombatUnitSelectionCriteria() const
 	return unitSelectionCriteria;
 }
 
+MobileTargetTypeValues AAIBrain::GetAttacks(const GamePhase& gamePhase) const
+{
+	return MobileTargetTypeValues(0.3f, s_attackedByRates.GetAttackedByRates(gamePhase), 0.7f, m_recentlyAttackedByRates);
+}
+
 float AAIBrain::GetAttacksBy(const AAITargetType& targetType, const GamePhase& gamePhase) const
 {
 	return (  0.3f * s_attackedByRates.GetAttackedByRate(gamePhase, targetType) 
@@ -928,21 +933,21 @@ StaticDefenceSelectionCriteria AAIBrain::DetermineStaticDefenceSelectionCriteria
 	// defence factor ranges from 0.0 (high defence power vs given target type) to 1 (no defence power)
 	const float defenceFactor    = exp(- sector->GetFriendlyStaticDefencePower(targetType) / 6.0f);
 
-	// defence factor ranges from 0.0 (~ 10 static defences) to 1 (no static defences)
+	// number of defences factor ranges from 0.0 (~ 10 static defences) to 1 (no static defences)
 	const float numberOfDefencesFactor = exp( - static_cast<float>(sector->GetNumberOfBuildings(EUnitCategory::STATIC_DEFENCE)) / 3.0f );
 
 	// income factor ranges from 1.0 (no metal income) to 0.0 (high metal income)
 	const float metalIncome  = m_metalIncome.GetAverageValue();
 	const float incomeFactor = 1.0f / (0.01f * metalIncome*metalIncome + 1.0f);
 
-	// cost ranges from 0.5 (excess metal, high defence power) to 2.0 (low metal, low defence power)
-	const float cost        = 0.5f + incomeFactor + 0.5f * defenceFactor;
+	// cost ranges from 0.5 (excess metal, high defence power) to 4.0 (low metal, low defence power)
+	const float cost        = 0.5f + 2.75f * incomeFactor + 0.75f * defenceFactor;
 
-	// power ranges from 0.75 (low income) to 3.0 (high income, low defence power & high enemy pressure)
-	const float combatPower = 0.75f + 0.5f * (1.0f - incomeFactor) + 1.25f * (1.0f - numberOfDefencesFactor) + 0.5f * m_estimatedPressureByEnemies;
+	// power ranges from 1.5 (low income) to 3.0 (high income, low defence power & high enemy pressure)
+	const float combatPower = 1.5f + 0.25f * (1.0f - incomeFactor) + 0.75f * (1.0f - numberOfDefencesFactor) + 0.5f * m_estimatedPressureByEnemies;
 
-	// buildtimes ranges form 0.25 (high income, low threat level) to 1.5 (low income, low defence power/high threat level)
-	const float buildtime = 0.25f + 0.32f * m_estimatedPressureByEnemies + defenceFactor;
+	// buildtimes ranges form 0.25 (high income, low threat level) to 2.0 (low income, low defence power/high threat level)
+	const float buildtime = 0.25f + 0.25f * m_estimatedPressureByEnemies + 1.5f * defenceFactor;
 
 	// range ranges from 0.1 to 1.5, depending on ratio of units with high ranges
 	float range;

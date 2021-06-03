@@ -31,14 +31,6 @@ namespace springLegacyAI {
 }
 using namespace springLegacyAI;
 
-enum Direction {WEST, EAST, SOUTH, NORTH, CENTER, NO_DIRECTION};
-
-struct DefenceCoverage
-{
-	Direction direction;
-	float defence;
-};
-
 struct SectorIndex
 {
 	SectorIndex(int x, int y) : x(x), y(y) {};
@@ -114,8 +106,7 @@ public:
 	bool IsOccupiedByEnemies() const{ return (GetTotalEnemyCombatUnits() > 0.1f) || (m_enemyBuildings > 0) || (m_enemyUnitsDetectedBySensor > 0); }
 
 	//! @brief Returns number of enemy units of given target type spotted in this sector (float as number decreases over time if sector is not scouted)
-	float GetNumberOfEnemyCombatUnits(const AAITargetType& targetType) const  { return m_enemyCombatUnits.GetValue(targetType); };
-	const TargetTypeValues& GetNumberOfEnemyCombatUnits() const  { return m_enemyCombatUnits; };
+	const TargetTypeValues& GetNumberOfEnemyCombatUnits() const { return m_enemyCombatUnits; };
 
 	//! @brief Decreases number of lost units by a factor < 1 such that AAI "forgets" about lost unit over time
 	void DecreaseLostUnits();
@@ -189,6 +180,12 @@ public:
 	//! @brief Returns center position of the sector
 	float3 GetCenter() const;
 
+	//! @brief Returns the map position of the top left corner of the sector
+	MapPos GetTopLeft() const;
+
+	//! @brief Returns the map position of the top left corner of the sector
+	MapPos GetBottomRight() const;
+
 	//! @brief Returns the continent ID of the center of the sector
 	int GetContinentID() const { return m_continentId; }
 
@@ -202,7 +199,7 @@ public:
 	void FailedToConstructStaticDefence() { ++m_failedAttemptsToConstructStaticDefence; }
 
 	//! @brief Returns the importance of a static defence against the target type with highest priority
-	float GetImportanceForStaticDefenceVs(AAITargetType& targetType, const GamePhase& gamePhase, float previousGames, float currentGame);
+	ThreatByTargetType GetImportanceForStaticDefenceVs(const MobileTargetTypeValues& globalAttacksByTargetType, float previousGames, float currentGame);
 
 	//! @brief Returns the rating of this sector as destination to attack (0.0f if no suitable target)
 	float GetAttackRating(const AAISector* currentSector, bool landSectorSelectable, bool waterSectorSelectable, const MobileTargetTypeValues& targetTypeOfUnits) const;
@@ -261,6 +258,9 @@ private:
 
 	//! @brief Returns true if further static defences may be built in this sector
 	bool AreFurtherStaticDefencesAllowed() const;
+
+	//! @brief Calculate the urgency for static defence vs given mobile target type
+	float CalculateStaticDefenceUrgency(const MobileTargetTypeValues& globalAttacksByTargetType, float previousGames, float currentGame, ETargetType mobileTargetType) const;
 
 	AAI *ai;
 

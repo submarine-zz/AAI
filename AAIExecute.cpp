@@ -32,8 +32,6 @@ float AAIExecute::learned = 2.5f;
 AAIExecute::AAIExecute(AAI *ai) :
 	m_constructionUrgency(AAIUnitCategory::numberOfUnitCategories, 0.0f),
 	m_constructionFunctions(AAIUnitCategory::numberOfUnitCategories, nullptr),
-	m_sectorToBuildNextDefence(nullptr),	
-	m_nextDefenceVsTargetType(ETargetType::UNKNOWN),
 	m_unitProductionRate (1),
 	m_numberOfIssuedOrders(0),
 	m_linkingBuildTaskToBuilderFailed(0u)
@@ -966,18 +964,39 @@ bool AAIExecute::BuildAirBase()
 
 bool AAIExecute::BuildDefences()
 {
-	if(    (ai->UnitTable()->GetNumberOfFutureUnitsOfCategory(EUnitCategory::STATIC_DEFENCE) > 2) 
-		|| (m_sectorToBuildNextDefence == nullptr) )
+	if(ai->UnitTable()->GetNumberOfFutureUnitsOfCategory(EUnitCategory::STATIC_DEFENCE) > 2)
 		return true;
 
-	BuildOrderStatus status = BuildStationaryDefenceVS(m_nextDefenceVsTargetType, m_sectorToBuildNextDefence);
+	constexpr int      maxSectorDistToBase(2);
+	const GamePhase    gamePhase(ai->GetAICallback()->GetCurrentFrame());
+	ThreatByTargetType highestThreat(0.0f, ETargetType::UNKNOWN);
+	AAISector*         mostUrgentSector(nullptr);
 
-	if(status == BuildOrderStatus::NO_BUILDER_AVAILABLE)
-		return false;
-	else if(status == BuildOrderStatus::NO_BUILDSITE_FOUND)
-		m_sectorToBuildNextDefence->FailedToConstructStaticDefence();
+	const MobileTargetTypeValues globalAttacksByTragetType = ai->Brain()->GetAttacks(gamePhase);
 
-	m_sectorToBuildNextDefence = nullptr;
+	for(int dist = 1; dist <= maxSectorDistToBase; ++dist)
+	{
+		for(const auto sector : ai->Brain()->m_sectorsInDistToBase[dist])
+		{
+			const ThreatByTargetType localThreat = sector->GetImportanceForStaticDefenceVs(globalAttacksByTragetType, learned, current);
+
+			if(localThreat.Threat() > highestThreat.Threat())
+			{
+				highestThreat    = localThreat;
+				mostUrgentSector = sector;
+			}
+		}
+	}
+
+	if(mostUrgentSector != nullptr)
+	{
+		const BuildOrderStatus status = BuildStationaryDefenceVS(highestThreat.TargetType(), mostUrgentSector);
+
+		if(status == BuildOrderStatus::NO_BUILDER_AVAILABLE)
+			return false;
+		else if(status == BuildOrderStatus::NO_BUILDSITE_FOUND)
+			mostUrgentSector->FailedToConstructStaticDefence();
+	}
 
 	return true;
 }
@@ -1022,16 +1041,16 @@ BuildOrderStatus AAIExecute::BuildStaticDefence(const AAISector* sector, const S
 
 	if(selectedDefence.IsValid())
 	{
-		const float3 buildsite = ai->Map()->DetermineBuildsiteForStaticDefence(selectedDefence, sector, selectionCriteria.targetType, selectionCriteria.terrain);
+		const BuildSite buildSite = ai->Map()->DetermineBuildsiteForStaticDefence(selectedDefence, sector, selectionCriteria.targetType, selectionCriteria.terrain);
 
-		if(buildsite.x > 0.0f)
+		if(buildSite.IsValid())
 		{
-			const AvailableConstructor selectedConstructor = ai->UnitTable()->FindClosestBuilder(selectedDefence, buildsite, ai->Brain()->IsCommanderAllowedForConstructionInSector(sector));
+			const AvailableConstructor selectedConstructor = ai->UnitTable()->FindClosestBuilder(selectedDefence, buildSite.Position(), ai->Brain()->IsCommanderAllowedForConstructionInSector(sector));
 
 			if(selectedConstructor.IsValid())
 			{
-				selectedConstructor.Constructor()->GiveConstructionOrder(selectedDefence, buildsite);
-				ai->Map()->AddOrRemoveStaticDefence(buildsite, selectedDefence, true);
+				selectedConstructor.Constructor()->GiveConstructionOrder(selectedDefence, buildSite.Position());
+				ai->Map()->AddOrRemoveStaticDefence(buildSite.Position(), selectedDefence, true);
 				return BuildOrderStatus::SUCCESSFUL;
 			}
 			else
@@ -1091,7 +1110,7 @@ bool AAIExecute::BuildArty()
 			
 			if(buildSite.IsValid())
 			{
-				if(buildSite.GetRating() > bestBuildSite.GetRating())
+				if(buildSite.Rating() > bestBuildSite.Rating())
 				{
 					bestBuildSite = buildSite;
 				}
@@ -1259,7 +1278,7 @@ bool AAIExecute::BuildRadar()
 
 				if(buildSite.IsValid())
 				{
-					if(buildSite.GetRating() > bestBuildSite.GetRating())
+					if(buildSite.Rating() > bestBuildSite.Rating())
 					{
 						selectedRadar = seaPositionFound ? seaRadar : landRadar;
 						bestBuildSite = buildSite;
@@ -1392,7 +1411,7 @@ void AAIExecute::BuildStaticDefenceForExtractor(UnitId extractorId, UnitDefId ex
 			const bool water = ai->s_buildTree.GetMovementType(extractorDefId).IsStaticSea() ? true : false;
 			const AAITargetType targetType( water ? ETargetType::FLOATER : ETargetType::SURFACE);
 
-			const StaticDefenceSelectionCriteria selectionCriteria(targetType, 1.0f, 0.1f, 2.0f, 3.0f, 1.0f, 0);
+			const StaticDefenceSelectionCriteria selectionCriteria(targetType, 1.5f, 0.1f, 4.0f, 3.0f, 1.0f, 0);
 			const UnitDefId defence = ai->BuildTable()->SelectStaticDefence(ai->GetSide(), selectionCriteria, water); 
 
 			// find closest builder
@@ -1464,40 +1483,9 @@ void AAIExecute::CheckDefences()
 
 	const ThreatByTargetType     highestThreat = AAIHelperFunctions::DetermineHighestThreat(enemyThreat);
 
-	const float urgencyOfStaticDefence = std::max(0.5f * highestThreat.Threat(), 8.0f);
+	const float urgencyOfStaticDefence = std::max(0.35f * highestThreat.Threat(), AAIConstants::maxStaticDefenceConstructionUrgency);
 
 	SetConstructionUrgencyIfHigher(EUnitCategory::STATIC_DEFENCE, urgencyOfStaticDefence);
-
-	constexpr int maxSectorDistToBase(2);
-	const GamePhase gamePhase(ai->GetAICallback()->GetCurrentFrame());
-
-	float highestImportance(0.0f);
-	AAISector *mostUrgentSector(nullptr);
-	AAITargetType targetType1;
-
-	for(int dist = 1; dist <= maxSectorDistToBase; ++dist)
-	{
-		for(const auto sector : ai->Brain()->m_sectorsInDistToBase[dist])
-		{
-			// stop building further defences if maximum has been reached / sector contains allied buildings / is occupied by another aai instance
-			AAITargetType targetType;		
-			const float importance = sector->GetImportanceForStaticDefenceVs(targetType, gamePhase, learned, current);
-
-			if(importance > highestImportance)
-			{
-				mostUrgentSector  = sector;
-				targetType1       = targetType;
-				highestImportance = importance;
-			}
-		}
-	}
-
-	if(mostUrgentSector)
-	{
-		m_sectorToBuildNextDefence = mostUrgentSector;
-		m_nextDefenceVsTargetType = targetType1;
-	}
-
 }
 
 void AAIExecute::CheckConstructionOfNanoTurret()

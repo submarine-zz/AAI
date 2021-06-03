@@ -69,6 +69,9 @@ public:
 	//!        Used to add or remove defences
 	void ModifyTiles(const float3& position, float maxWeaponRange, const UnitFootprint& footprint, const TargetTypeValues& combatPower, bool addValues);
 
+	//! @brief Calculates current sum of defence map values for all tiles of the area
+	float CalculateValueForArea(const MapPos& topLeft, const MapPos& bottomRight, const AAITargetType& targetType) const;
+
 private:
 	//! @brief Adds combat power values to given tile
 	void AddDefence(int tile, const TargetTypeValues& combatPower);

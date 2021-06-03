@@ -128,6 +128,9 @@ public:
 
 	//! Threshold for enemy AA power for air raid target to be removed from the list
 	static constexpr float maxEnemyAACombatPowerForTarget = 10.0f;
+
+	//! Maximum constrcution urgency for static defences
+	static constexpr float  maxStaticDefenceConstructionUrgency = 6.0f;
 };
 
 enum UnitTask {UNIT_IDLE, UNIT_ATTACKING, DEFENDING, GUARDING, MOVING, BUILDING, SCOUTING, ASSISTING, RECLAIMING, HEADING_TO_RALLYPOINT, UNIT_KILLED, ENEMY_UNIT, BOMB_TARGET};

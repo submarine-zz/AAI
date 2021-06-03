@@ -150,7 +150,7 @@ public:
 
 	const float3& Position()  const { return m_position; }
 
-	float         GetRating() const { return m_rating; }
+	float         Rating() const { return m_rating; }
 
 	bool          IsValid()   const { return m_valid; }
 

@@ -791,7 +791,7 @@ BuildSite AAIMap::DetermineElevatedBuildsite(UnitDefId buildingDefId, int xStart
 
 				const float rating = 0.05f * (float)(rand()%20) + 5.0f * edgeDistanceFactor + 3.0 * elevatedTerrainFactor;
 
-				if(rating > bestBuildSite.GetRating())
+				if(rating > bestBuildSite.Rating())
 				{
 					float3 possibleBuildsite = ConvertMapPosToUnitPos(mapPos, footprint);
 					ConvertPositionToFinalBuildsite(possibleBuildsite, footprint);
@@ -810,7 +810,7 @@ BuildSite AAIMap::DetermineElevatedBuildsite(UnitDefId buildingDefId, int xStart
 	return bestBuildSite;
 }
 
-float3 AAIMap::DetermineBuildsiteForStaticDefence(UnitDefId staticDefence, const AAISector* sector, const AAITargetType& targetType, float terrainModifier) const
+BuildSite AAIMap::DetermineBuildsiteForStaticDefence(UnitDefId staticDefence, const AAISector* sector, const AAITargetType& targetType, float terrainModifier) const
 {
 	const springLegacyAI::UnitDef *def = &ai->BuildTable()->GetUnitDef(staticDefence.id);
 
@@ -857,9 +857,9 @@ float3 AAIMap::DetermineBuildsiteForStaticDefence(UnitDefId staticDefence, const
 	//-----------------------------------------------------------------------------------------------------------------
 	// find highest rated positon with search range
 	//-----------------------------------------------------------------------------------------------------------------
-	float3 buildsite(ZeroVector);
-	float highestRating(0.0f);
 	distanceToBaseArrayIndex = 0;
+
+	BuildSite buildSite;
 
 	/*FILE* file(nullptr);
 	const std::string filename = cfg->GetFileName(ai->GetAICallback(), "AAIDebug.txt", "", "", true);
@@ -894,15 +894,14 @@ float3 AAIMap::DetermineBuildsiteForStaticDefence(UnitDefId staticDefence, const
 				if( edge_distance < range)
 					rating *= (1.0f - (range - edge_distance) / range);
 
-				if(rating > highestRating)
+				if(rating > buildSite.Rating())
 				{
 					float3 possibleBuildsite = ConvertMapPosToUnitPos(mapPos, footprint);
 					ConvertPositionToFinalBuildsite(possibleBuildsite, footprint);
 
 					if(ai->GetAICallback()->CanBuildAt(def, possibleBuildsite))
 					{
-						buildsite = possibleBuildsite;
-						highestRating = rating;
+						buildSite.SetBuildSite(possibleBuildsite, rating);
 					}
 				}
 			}
@@ -913,7 +912,7 @@ float3 AAIMap::DetermineBuildsiteForStaticDefence(UnitDefId staticDefence, const
 
 	//fclose(file);
 
-	return buildsite;
+	return buildSite;
 }
 
 BuildSite AAIMap::CheckIfSuitableBuildSite(const UnitFootprint& footprint, const springLegacyAI::UnitDef* unitDef, const MapPos& mapPos) const

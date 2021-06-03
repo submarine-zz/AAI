@@ -213,12 +213,6 @@ private:
 	//! Pointer to correspondind construction function for each category (or nullptr if none)
 	std::vector< bool (AAIExecute::*) ()> m_constructionFunctions;
 
-	//! Sector where next static defence shall be build (nullptr if none)
-	AAISector*    m_sectorToBuildNextDefence;
-
-	//! Target type against which which next defence shall be effective
-	AAITargetType m_nextDefenceVsTargetType;
-
 	//! The number of units the AI tries to order in every unit production update step
 	int m_unitProductionRate;
 

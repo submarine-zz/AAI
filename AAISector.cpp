@@ -215,51 +215,51 @@ float3 AAISector::GetCenter() const
 	return float3( static_cast<float>(m_sectorIndex.x * AAIMap::xSectorSize +  AAIMap::xSectorSize/2), 0.0f, static_cast<float>(m_sectorIndex.y * AAIMap::ySectorSize + AAIMap::ySectorSize/2));
 }
 
-float AAISector::GetImportanceForStaticDefenceVs(AAITargetType& targetType, const GamePhase& gamePhase, float previousGames, float currentGame)
+MapPos AAISector::GetTopLeft() const 
 {
+	return MapPos(m_sectorIndex.x * AAIMap::xSectorSizeMap, m_sectorIndex.y * AAIMap::ySectorSizeMap);
+}
+
+MapPos AAISector::GetBottomRight() const 
+{
+	return MapPos( (m_sectorIndex.x+1) * AAIMap::xSectorSizeMap, (m_sectorIndex.y+1) * AAIMap::ySectorSizeMap);
+}
+
+ThreatByTargetType AAISector::GetImportanceForStaticDefenceVs(const MobileTargetTypeValues& globalAttacksByTargetType, float previousGames, float currentGame)
+{
+	ThreatByTargetType threat(0.0f, ETargetType::UNKNOWN);
+
 	if( AreFurtherStaticDefencesAllowed() )
 	{
-		if(m_failedAttemptsToConstructStaticDefence < 2) // do not try to build defences if last two attempts failed
+		if(m_failedAttemptsToConstructStaticDefence >= 2) // do not try to build defences if last two attempts failed
+		{
+			m_failedAttemptsToConstructStaticDefence = 0;
+		}
+		else
 		{
 			const float baseProximity = (m_distanceToBase <= 1) ? 1.0f : 0.0f;
 
-			std::vector<float> importanceVsTargetType(AAITargetType::numberOfMobileTargetTypes, 0.0f);
+			// water factor between 0 (no water) and 1 (entire sector covered with water)
+			const float waterFactor = 0.5f * tanh(8.0f * m_waterTilesRatio - 2.0f) + 0.5f;
 
-			importanceVsTargetType[AAITargetType::airIndex] = baseProximity +
-						  (0.1f + GetLocalAttacksBy(ETargetType::AIR, previousGames, currentGame) + ai->Brain()->GetAttacksBy(ETargetType::AIR, gamePhase)) 
-						/ (1.0f + GetFriendlyStaticDefencePower(ETargetType::AIR));
+			MobileTargetTypeValues importanceVsTargetType;
 
-			if(m_waterTilesRatio < 0.7f)
+			importanceVsTargetType[ETargetType::SURFACE]   =                baseProximity + CalculateStaticDefenceUrgency(globalAttacksByTargetType, previousGames, currentGame, ETargetType::SURFACE);
+			importanceVsTargetType[ETargetType::AIR]       =                baseProximity + CalculateStaticDefenceUrgency(globalAttacksByTargetType, previousGames, currentGame, ETargetType::AIR);
+			importanceVsTargetType[ETargetType::FLOATER]   = waterFactor * (baseProximity + CalculateStaticDefenceUrgency(globalAttacksByTargetType, previousGames, currentGame, ETargetType::FLOATER));
+			importanceVsTargetType[ETargetType::SUBMERGED] = waterFactor * (baseProximity + CalculateStaticDefenceUrgency(globalAttacksByTargetType, previousGames, currentGame, ETargetType::SUBMERGED));
+
+			for(const auto targetType : AAITargetType::m_mobileTargetTypes)
 			{
-				importanceVsTargetType[AAITargetType::surfaceIndex] = baseProximity +
-						  (0.1f + GetLocalAttacksBy(ETargetType::SURFACE, previousGames, currentGame) + ai->Brain()->GetAttacksBy(ETargetType::SURFACE, gamePhase)) 
-						/ (1.0f + GetFriendlyStaticDefencePower(ETargetType::SURFACE));
-			}
-
-			if(m_waterTilesRatio > 0.3f)
-			{
-				importanceVsTargetType[AAITargetType::floaterIndex] = baseProximity +
-						  (0.1f + GetLocalAttacksBy(ETargetType::FLOATER, previousGames, currentGame) + ai->Brain()->GetAttacksBy(ETargetType::FLOATER, gamePhase)) 
-						/ (1.0f + GetFriendlyStaticDefencePower(ETargetType::FLOATER));
-
-				importanceVsTargetType[AAITargetType::submergedIndex] = baseProximity +
-						  (0.1f + GetLocalAttacksBy(ETargetType::SUBMERGED, previousGames, currentGame) + ai->Brain()->GetAttacksBy(ETargetType::SUBMERGED, gamePhase)) 
-						/ (1.0f + GetFriendlyStaticDefencePower(ETargetType::SUBMERGED));
-			}
-
-			float highestImportance(0.0f);
-
-			for(int targetTypeId = 0; targetTypeId < importanceVsTargetType.size(); ++targetTypeId)
-			{
-				if( importanceVsTargetType[targetTypeId] > highestImportance )
+				if( importanceVsTargetType[targetType] > threat.Threat() )
 				{
-					highestImportance = importanceVsTargetType[targetTypeId];
-					targetType 		  = AAITargetType(static_cast<ETargetType>(targetTypeId));
+					threat.Threat()     = importanceVsTargetType[targetType];
+					threat.TargetType() = targetType;
 				}
 			}
 
 			// modify importance based on location of sector (higher importance for sectors "facing" the enemy)
-			if(highestImportance > 0.0f)
+			if(threat.Threat() > 0.0f)
 			{
 				const MapPos& enemyBaseCenter = ai->Map()->GetCenterOfEnemyBase();
 				const MapPos& baseCenter      = ai->Brain()->GetCenterOfBase();
@@ -273,18 +273,14 @@ float AAISector::GetImportanceForStaticDefenceVs(AAITargetType& targetType, cons
 										  		+ (enemyBaseCenter.y - baseCenter.y)*(enemyBaseCenter.y - baseCenter.y);
 
 				if(distEnemyBase < distOwnToEnemyBase)
-					highestImportance *= 2.0f;
+					threat.Threat() *= 2.0f;
 
-				highestImportance *= static_cast<float>(2 + this->GetEdgeDistance()) * (2.0f /  static_cast<float>(m_distanceToBase+1));
+				threat.Threat() *= static_cast<float>(2 + this->GetEdgeDistance()) * (2.0f /  static_cast<float>(m_distanceToBase+1));
 			}
-
-			return highestImportance;
 		}
-
-		m_failedAttemptsToConstructStaticDefence = 0;
 	}
 
-	return 0.0f;
+	return threat;
 }
 
 float AAISector::GetAttackRating(const AAISector* currentSector, bool landSectorSelectable, bool waterSectorSelectable, const MobileTargetTypeValues& targetTypeOfUnits) const
@@ -691,4 +687,14 @@ bool AAISector::AreFurtherStaticDefencesAllowed() const
 	return 	   (GetNumberOfBuildings(EUnitCategory::STATIC_DEFENCE) < cfg->MAX_DEFENCES) 
 			&& (GetNumberOfAlliedBuildings() < 3)
 			&& (AAIMap::s_teamSectorMap.IsOccupiedByOtherTeam(m_sectorIndex, ai->GetMyTeamId()) == false);
+}
+
+float AAISector::CalculateStaticDefenceUrgency(const MobileTargetTypeValues& globalAttacksByTargetType, float previousGames, float currentGame, ETargetType mobileTargetType) const
+{
+	const MapPos topLeft     = GetTopLeft();
+	const MapPos bottomRight = GetBottomRight();
+	const float defenceValue = AAIMap::s_defenceMaps.CalculateValueForArea(topLeft, bottomRight, mobileTargetType) / static_cast<float>(AAIMap::xSectorSizeMap*AAIMap::ySectorSizeMap);
+
+	return 	  (0.1f + GetLocalAttacksBy(mobileTargetType, previousGames, currentGame) + globalAttacksByTargetType[mobileTargetType]) 
+			/ (1.0f + defenceValue);//GetFriendlyStaticDefencePower(mobileTargetType));
 }

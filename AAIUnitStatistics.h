@@ -36,6 +36,11 @@ public:
 		m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()][attackerTargetType] = rate;
 	}
 
+	const MobileTargetTypeValues& GetAttackedByRates(const GamePhase& gamePhase) const
+	{
+		return m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()];
+	}
+
 	float GetAttackedByRate(const GamePhase& gamePhase, const AAITargetType& attackerTargetType) const
 	{
 		return m_attackedByRatesPerGamePhase[gamePhase.GetArrayIndex()][attackerTargetType];

@@ -343,6 +343,15 @@ class MobileTargetTypeValues
 public:
 	MobileTargetTypeValues() { Reset(); }
 
+	MobileTargetTypeValues(float factor1, const MobileTargetTypeValues& values1, float factor2, const MobileTargetTypeValues& values2)
+	{
+		static_assert(AAITargetType::numberOfMobileTargetTypes == 4, "Number of mobile target types does not fit to implementation");
+		m_values[0] = (factor1 * values1.m_values[0] + factor2 * values2.m_values[0]);
+		m_values[1] = (factor1 * values1.m_values[1] + factor2 * values2.m_values[1]);
+		m_values[2] = (factor1 * values1.m_values[2] + factor2 * values2.m_values[2]);
+		m_values[3] = (factor1 * values1.m_values[3] + factor2 * values2.m_values[3]);
+	}
+
 	float&       operator[](const AAITargetType& targetType)       { return m_values[targetType.GetArrayIndex()]; }
 	const float& operator[](const AAITargetType& targetType) const { return m_values[targetType.GetArrayIndex()]; }
 
