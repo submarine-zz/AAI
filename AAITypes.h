@@ -341,7 +341,9 @@ public:
 class MobileTargetTypeValues
 {
 public:
-	MobileTargetTypeValues() { Reset(); }
+	MobileTargetTypeValues(float value) {Fill(value); }
+
+	MobileTargetTypeValues() : MobileTargetTypeValues(0.0f) {}
 
 	MobileTargetTypeValues(float factor1, const MobileTargetTypeValues& values1, float factor2, const MobileTargetTypeValues& values2)
 	{
@@ -358,13 +360,9 @@ public:
 	float&       operator[](ETargetType targetType)       { return m_values[static_cast<int>(targetType)]; }
 	const float& operator[](ETargetType targetType) const { return m_values[static_cast<int>(targetType)]; }
 
-	void Reset()
+	void Fill(float value) 
 	{
-		static_assert(AAITargetType::numberOfMobileTargetTypes == 4, "Number of mobile target types does not fit to implementation");
-		m_values[0] = 0.0f;
-		m_values[1] = 0.0f;
-		m_values[2] = 0.0f;
-		m_values[3] = 0.0f;
+		m_values.fill(value);
 	}
 
 	void MultiplyValues(float factor)

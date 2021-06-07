@@ -196,8 +196,11 @@ private:
 	//! Frequency of attacks by different combat categories throughout the gane
 	static AttackedByRatesPerGamePhase s_attackedByRates;
 
+	//! Default threat values for different target types calculated from map type and terrain
+	static MobileTargetTypeValues s_enemyThreatByMap;
+
 	//! Estimation how much the AAI instance is under pressure in the current game situation, values ranging from 0 (min) to 1 (max).
-	float m_estimatedPressureByEnemies;	
+	float m_estimatedPressureByEnemies;
 
 	AAI *ai;
 };

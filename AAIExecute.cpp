@@ -164,6 +164,8 @@ void AAIExecute::AddUnitToGroup(const UnitId& unitId, const UnitDefId& unitDefId
 
 void AAIExecute::BuildCombatUnitOfCategory(const AAIMovementType& moveType, const TargetTypeValues& combatPowerCriteria, const UnitSelectionCriteria& unitSelectionCriteria, const std::vector<float>& factoryUtilization, bool urgent)
 {
+	//ai->Log("Requesting combat unit of move type %i - combat power vs surface/air/floater/submerged: %f / %f / %f / %f\n", static_cast<int>(moveType.GetMovementType()), combatPowerCriteria[ETargetType::SURFACE], combatPowerCriteria[ETargetType::AIR], combatPowerCriteria[ETargetType::FLOATER], combatPowerCriteria[ETargetType::SUBMERGED]); 
+
 	// determine random float in [0:1]
 	const float randomValue = 0.01f * static_cast<float>(std::rand()%101);
 
@@ -185,7 +187,7 @@ void AAIExecute::BuildCombatUnitOfCategory(const AAIMovementType& moveType, cons
 			numberOfUnits = 3;
 		else if(ai->s_buildTree.GetTotalCost(unitDefId) < cfg->MAX_COST_MEDIUM_ASSAULT * costStatistics.GetMaxValue())
 			numberOfUnits = 2;
-		
+
 		if( ai->BuildTable()->units_dynamic[unitDefId.id].constructorsAvailable <= 0 )
 			ai->BuildTable()->RequestFactoryFor(unitDefId);
 		else

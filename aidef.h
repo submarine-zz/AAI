@@ -130,7 +130,13 @@ public:
 	static constexpr float maxEnemyAACombatPowerForTarget = 10.0f;
 
 	//! Maximum constrcution urgency for static defences
-	static constexpr float  maxStaticDefenceConstructionUrgency = 6.0f;
+	static constexpr float maxStaticDefenceConstructionUrgency = 6.0f;
+
+	//! The threat by different types of enemy units derived from terrain (water vs land tiles)
+	static constexpr float defaultEnemyThreatByTerrain = 0.3f;
+
+	//! The threat by different types of enemy units derived from map type
+	static constexpr float defaultEnemyThreatByMapType = 0.3f;
 };
 
 enum UnitTask {UNIT_IDLE, UNIT_ATTACKING, DEFENDING, GUARDING, MOVING, BUILDING, SCOUTING, ASSISTING, RECLAIMING, HEADING_TO_RALLYPOINT, UNIT_KILLED, ENEMY_UNIT, BOMB_TARGET};

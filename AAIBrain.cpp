@@ -25,6 +25,7 @@
 using namespace springLegacyAI;
 
 AttackedByRatesPerGamePhase AAIBrain::s_attackedByRates;
+MobileTargetTypeValues      AAIBrain::s_enemyThreatByMap;
 
 AAIBrain::AAIBrain(AAI *ai, int maxSectorDistanceToBase) :
 	m_baseFlatLandRatio(0.0f),
@@ -41,6 +42,34 @@ AAIBrain::AAIBrain(AAI *ai, int maxSectorDistanceToBase) :
 	this->ai = ai;
 
 	m_sectorsInDistToBase.resize(maxSectorDistanceToBase);
+
+	//-----------------------------------------------------------------------------------------------------------------
+	// Determine threat by target type based on map -ranges between 0 (no threat to be expected) and 0.3
+	//-----------------------------------------------------------------------------------------------------------------
+
+	s_enemyThreatByMap.Fill(AAIConstants::defaultEnemyThreatByTerrain);
+
+	s_enemyThreatByMap[ETargetType::SURFACE]   *= (1.0f - AAIMap::s_waterTilesRatio);
+	s_enemyThreatByMap[ETargetType::FLOATER]   *= AAIMap::s_waterTilesRatio;
+	s_enemyThreatByMap[ETargetType::SUBMERGED] *= AAIMap::s_waterTilesRatio;
+
+	const AAIMapType& mapType = ai->Map()->GetMapType();
+
+	if(mapType.IsLand())
+	{
+		s_enemyThreatByMap[ETargetType::SURFACE] += AAIConstants::defaultEnemyThreatByMapType;
+	}
+	else if(mapType.IsLandWater())
+	{
+		s_enemyThreatByMap[ETargetType::SURFACE]   += AAIConstants::defaultEnemyThreatByMapType;
+		s_enemyThreatByMap[ETargetType::FLOATER]   += AAIConstants::defaultEnemyThreatByMapType;
+		s_enemyThreatByMap[ETargetType::SUBMERGED] += AAIConstants::defaultEnemyThreatByMapType;
+	}
+	else if(mapType.IsWater())
+	{
+		s_enemyThreatByMap[ETargetType::FLOATER]   += AAIConstants::defaultEnemyThreatByMapType;
+		s_enemyThreatByMap[ETargetType::SUBMERGED] += AAIConstants::defaultEnemyThreatByMapType;
+	}
 }
 
 AAIBrain::~AAIBrain(void)
@@ -388,7 +417,7 @@ void AddToMobileCombatPower(MobileTargetTypeValues& mobileCombatPower, const Tar
 
 void AAIBrain::UpdateDefenceCapabilities()
 {
-	m_totalMobileCombatPower.Reset();
+	m_totalMobileCombatPower.Fill(0.0f);
 
 	for(const auto category : AAIUnitCategory::m_combatUnitCategories)
 	{
@@ -454,7 +483,7 @@ void AAIBrain::BuildUnits()
 			// bomber preference ratio between 0 (no targets or high enemy pressure) and 0.9 (low enemy pressure and many possible targets for bombing run) 
 			const float bomberRatio = std::max(ai->AirForceMgr()->GetNumberOfBombTargets() - m_estimatedPressureByEnemies - 0.1f, 0.0f);
 
-			ai->Log("Air selected - bomb targets: %f      enemy pressure: %f   bomber ratio: %f\n", ai->AirForceMgr()->GetNumberOfBombTargets(), m_estimatedPressureByEnemies, bomberRatio); 
+			//ai->Log("Air selected - bomb targets: %f      enemy pressure: %f   bomber ratio: %f\n", ai->AirForceMgr()->GetNumberOfBombTargets(), m_estimatedPressureByEnemies, bomberRatio); 
 
 			if(IsRandomNumberBelow(bomberRatio))
 			{
@@ -497,24 +526,6 @@ MobileTargetTypeValues AAIBrain::DetermineThreatByTargetType() const
 	defenceStatistics.Finalize();
 
 	//-----------------------------------------------------------------------------------------------------------------
-	// Determine threat by target type based on map -ranges between 0 (no threat to be expected) and 0.3
-	//-----------------------------------------------------------------------------------------------------------------
-
-	const float mapFactor(0.3f);
-	TargetTypeValues threatByMap(0.0f);
-
-	threatByMap[ETargetType::AIR] = mapFactor;
-
-	if(AAIMap::s_waterTilesRatio < 0.85f)
-		threatByMap[ETargetType::SURFACE]   += mapFactor * (1.0f - AAIMap::s_waterTilesRatio);
-
-	if(AAIMap::s_waterTilesRatio > 0.15f)
-	{
-		threatByMap[ETargetType::FLOATER]   += mapFactor * AAIMap::s_waterTilesRatio;
-		threatByMap[ETargetType::SUBMERGED] += mapFactor * AAIMap::s_waterTilesRatio;
-	}
-
-	//-----------------------------------------------------------------------------------------------------------------
 	// Calculate urgency to counter each target category (attack pressure by this target vs. defence power agaibnst this target type)
 	//-----------------------------------------------------------------------------------------------------------------
 
@@ -523,7 +534,7 @@ MobileTargetTypeValues AAIBrain::DetermineThreatByTargetType() const
 	for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
 	{
 		// sum can be between 0 and 2.5
-		const float sum =   threatByMap.GetValue(targetType) 
+		const float sum =   s_enemyThreatByMap[targetType]
 						  + 1.1f * attackedByCatStatistics.GetDeviationFromZero( attackedByCategory[targetType] ) 
 						  + 1.1f * unitsSpottedStatistics.GetDeviationFromZero( m_maxSpottedCombatUnitsOfTargetType[targetType] );
 
@@ -575,12 +586,11 @@ TargetTypeValues AAIBrain::DetermineCombatPowerVsTargetType() const
 	}
 
 	//! @todo Refine criteria - for now set combat power vs static units (i.e. enemy defences) based on current pressure
-	const float combatPowerVsStatic = (combatPowerVsTargetType[ETargetType::SURFACE] + combatPowerVsTargetType[ETargetType::FLOATER]) * 1.25f * (1.0f - m_estimatedPressureByEnemies);
-	combatPowerVsTargetType[ETargetType::STATIC] = combatPowerVsStatic;
+	combatPowerVsTargetType[ETargetType::STATIC] = (combatPowerVsTargetType[ETargetType::SURFACE] + combatPowerVsTargetType[ETargetType::FLOATER]) * (1.0f - m_estimatedPressureByEnemies);
 
-	//for(const auto& targetType : AAITargetType::m_targetTypes)
-	//	ai->Log("%s: -> %f   ", AAITargetType(targetType).GetName().c_str(), combatPowerVsTargetType[targetType] );
-	//ai->Log("\n");
+	/*for(const auto& targetType : AAITargetType::m_targetTypes)
+		ai->Log("%s: -> %f   ", AAITargetType(targetType).GetName().c_str(), combatPowerVsTargetType[targetType] );
+	ai->Log("\n");*/
 
 	return combatPowerVsTargetType;
 }
@@ -603,15 +613,11 @@ AAIMovementType AAIBrain::DetermineMovementTypeForCombatUnitConstruction(const G
 		int enemyBuildingsOnLand, enemyBuildingsOnSea;
 		ai->Map()->DetermineSpottedEnemyBuildingsOnContinentType(enemyBuildingsOnLand, enemyBuildingsOnSea);
 
-		const float totalBuildings = static_cast<float>( std::max(enemyBuildingsOnLand+enemyBuildingsOnSea, 1) );
+		const float totalBuildings = enemyBuildingsOnLand + enemyBuildingsOnSea;
+		const float offshoreBuildingRatio = (totalBuildings > 0) ? static_cast<float>(enemyBuildingsOnSea) / static_cast<float>(totalBuildings) : 0.5f;
 
-		// ratio of sea units is determined: 25% water ratio on map, 75% ratio of enemy buildings on sea
-		float waterUnitRatio = 0.25f * (AAIMap::s_waterTilesRatio + 3.0f * static_cast<float>(enemyBuildingsOnSea) / totalBuildings);
-
-		if(waterUnitRatio <0.05f)
-			waterUnitRatio = 0.0f;
-		else if(waterUnitRatio > 0.95f)
-			waterUnitRatio = 1.0f;
+		// ratio of sea units is determined: 40% by  water ratio on map, 60 % ratio of enemy buildings on sea
+		float waterUnitRatio = 0.4f * AAIMap::s_waterTilesRatio + 0.6f * offshoreBuildingRatio;
 
 		if(IsRandomNumberBelow(waterUnitRatio) )
 		{
@@ -638,11 +644,11 @@ UnitSelectionCriteria AAIBrain::DetermineCombatUnitSelectionCriteria() const
 	const float metalIncome  = m_metalIncome.GetAverageValue();
 	const float incomeFactor = 1.0f / (0.01f * metalIncome*metalIncome + 1.0f);
 
-	// cost ranges from 0.5 (excess metal, low threat level) to 2 (low metal)
-	unitSelectionCriteria.cost       = 0.5f + 1.5f * incomeFactor;
+	// cost ranges from 0.5 (excess metal, low threat level) to 2.5 (low metal)
+	unitSelectionCriteria.cost       = 0.5f + 2.0f * incomeFactor;
 
-	// power ranges from 0.5 (low income) to 2.0 (high income, high enemy pressure)
-	unitSelectionCriteria.power      = 0.5f + 1.0f * (1.0f - incomeFactor) + 0.5f * m_estimatedPressureByEnemies;
+	// power ranges from 1.0 (low income) to 2.5 (high income, high enemy pressure)
+	unitSelectionCriteria.power      = 1.0f + 1.0f * (1.0f - incomeFactor) + 0.5f * m_estimatedPressureByEnemies;
 
 	// efficiency ranges form 0.25 (high income, low threat level) to 1.5 (low income, high threat level)
 	unitSelectionCriteria.efficiency = 0.25f + 0.5f * m_estimatedPressureByEnemies + 0.75f * incomeFactor;
@@ -820,7 +826,7 @@ float AAIBrain::DetermineConstructionUrgencyOfFactory(UnitDefId factoryDefId, co
 		terrainModifier = (0.3f + 0.35f * (AAIMap::s_landTilesRatio  + m_baseFlatLandRatio) );
 	}
 
-	// income factor ranges from 2.0 (no metal income) to 0.5 (high metal income)
+	// cost factor ranges from 2.0 (no metal income) to 0.5 (high metal income)
 	const float metalIncome = m_metalIncome.GetAverageValue();
 	const float costFactor  = 1.5f / (0.01f * metalIncome*metalIncome + 1.0f) + 0.5f;
 
@@ -828,8 +834,8 @@ float AAIBrain::DetermineConstructionUrgencyOfFactory(UnitDefId factoryDefId, co
 	const StatisticalData& costs = ai->s_buildTree.GetUnitStatistics(ai->GetSide()).GetUnitCostStatistics(EUnitCategory::STATIC_CONSTRUCTOR);
 	const float costRating       = costFactor * costs.GetDeviationFromMax( ai->s_buildTree.GetTotalCost(factoryDefId) );
 
-	// between 2 (no active factories of that type) and -> 0 (many active factories of that type)
-	const float numberOfExistingFactoriesRating = 2.0f / static_cast<float>(ai->BuildTable()->GetDynamicUnitTypeData(factoryDefId).active + 1);
+	// between 3 (no active factories of that type) and -> 0 (many active factories of that type)
+	const float numberOfExistingFactoriesRating = 3.0f / static_cast<float>(ai->BuildTable()->GetDynamicUnitTypeData(factoryDefId).active + 1);
 
 	const float rating = terrainModifier * (ai->BuildTable()->DetermineFactoryRating(factoryDefId, combatPowerVsTargetType) + costRating + numberOfExistingFactoriesRating);
 

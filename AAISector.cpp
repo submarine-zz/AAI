@@ -129,16 +129,16 @@ bool AAISector::AddToBase(bool addToBase)
 void AAISector::ResetLocalCombatPower() 
 {
 	m_alliedBuildings = 0;
-	m_friendlyStaticCombatPower.Reset();
-	m_friendlyMobileCombatPower.Reset();
+	m_friendlyStaticCombatPower.Fill(0.0f);
+	m_friendlyMobileCombatPower.Fill(0.0f);
 }
 
 void AAISector::ResetScoutedEnemiesData() 
 { 
 	m_enemyBuildings = 0;
 	m_enemyCombatUnits.Fill(0.0f);
-	m_enemyStaticCombatPower.Reset();
-	m_enemyMobileCombatPower.Reset();
+	m_enemyStaticCombatPower.Fill(0.0f);
+	m_enemyMobileCombatPower.Fill(0.0f);
 };
 
 void AAISector::AddScoutedEnemyUnit(UnitDefId enemyDefId, int framesSinceLastUpdate)
