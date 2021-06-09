@@ -508,7 +508,7 @@ void AAI::UnitFinished(int unit)
 		// unit
 		if(category.IsCombatUnit())
 		{
-			m_execute->AddUnitToGroup(unit, unitDefId);
+			m_execute->AddUnitToGroup(unitId, unitDefId);
 
 			m_brain->AddDefenceCapabilities(unitDefId);
 

@@ -145,7 +145,7 @@ enum UnitTask {UNIT_IDLE, UNIT_ATTACKING, DEFENDING, GUARDING, MOVING, BUILDING,
 struct UnitId
 {
 public:
-	UnitId(int unitId) : id(unitId) { };
+	explicit UnitId(int unitId) : id(unitId) { };
 
 	UnitId() : id(-1) { };
 
@@ -181,7 +181,7 @@ public:
 class FactoryId
 {
 public:
-	FactoryId(int factoryId) : id(factoryId) {}
+	explicit FactoryId(int factoryId) : id(factoryId) {}
 
 	FactoryId() : FactoryId(-1) { }
 
