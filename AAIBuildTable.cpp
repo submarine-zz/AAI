@@ -111,8 +111,8 @@ void AAIBuildTable::UnfinishedConstructorKilled(UnitDefId constructor)
 bool AAIBuildTable::IsBuildingSelectable(UnitDefId building, bool water, bool mustBeConstructable) const
 {
 	const bool constructablePassed = !mustBeConstructable || (units_dynamic[building.id].constructorsAvailable > 0);
-	const bool landCheckPassed     = !water    && ai->s_buildTree.GetMovementType(building.id).IsStaticLand();
-	const bool seaCheckPassed      =  water    && ai->s_buildTree.GetMovementType(building.id).IsStaticSea();
+	const bool landCheckPassed     = !water    && ai->s_buildTree.GetMovementType(building).IsStaticLand();
+	const bool seaCheckPassed      =  water    && ai->s_buildTree.GetMovementType(building).IsStaticSea();
 
 	return constructablePassed && (landCheckPassed || seaCheckPassed );
 }
@@ -285,7 +285,7 @@ UnitDefId AAIBuildTable::SelectStorage(int side, const StorageSelectionCriteria&
 	for(auto storage : ai->s_buildTree.GetUnitsInCategory(EUnitCategory::STORAGE, side))
 	{
 		
-		if( IsBuildingSelectable(storage.id, water, mustBeConstructable) )
+		if( IsBuildingSelectable(storage, water, mustBeConstructable) )
 		{
 			const float rating =      selectionCriteria.cost         * costs.GetDeviationFromMax( ai->s_buildTree.GetTotalCost(storage) )
 									+ selectionCriteria.buildtime    * buildtimes.GetDeviationFromMax( ai->s_buildTree.GetBuildtime(storage) )
@@ -710,19 +710,19 @@ UnitDefId AAIBuildTable::SelectRadar(int side, float cost, float range, bool wat
 	const StatisticalData& costs  = ai->s_buildTree.GetUnitStatistics(side).GetSensorStatistics().m_radarCosts;
 	const StatisticalData& ranges = ai->s_buildTree.GetUnitStatistics(side).GetSensorStatistics().m_radarRanges;
 
-	for(auto sensor = ai->s_buildTree.GetUnitsInCategory(EUnitCategory::STATIC_SENSOR, side).begin(); sensor != ai->s_buildTree.GetUnitsInCategory(EUnitCategory::STATIC_SENSOR, side).end(); ++sensor)
+	for(const auto sensor : ai->s_buildTree.GetUnitsInCategory(EUnitCategory::STATIC_SENSOR, side))
 	{
 		//! @todo replace by checking unit type for radar when implemented.
-		if( ai->s_buildTree.GetUnitType(sensor->id).IsRadar() )
+		if( ai->s_buildTree.GetUnitType(sensor).IsRadar() )
 		{
-			if(IsBuildingSelectable(*sensor, water, mustBeConstructable))
+			if(IsBuildingSelectable(sensor, water, mustBeConstructable))
 			{
-				const float myRating =   cost * costs.GetNormalizedDeviationFromMax(ai->s_buildTree.GetTotalCost(sensor->id))
-				                       + range * ranges.GetNormalizedDeviationFromMin(ai->s_buildTree.GetMaxRange(sensor->id));
+				const float myRating =   cost * costs.GetNormalizedDeviationFromMax(ai->s_buildTree.GetTotalCost(sensor))
+				                       + range * ranges.GetNormalizedDeviationFromMin(ai->s_buildTree.GetMaxRange(sensor));
 
 				if(myRating > bestRating)
 				{
-					selectedRadar = *sensor;
+					selectedRadar = sensor;
 					bestRating    = myRating;
 				}
 			}

@@ -164,7 +164,7 @@ public:
 class UnitDefId
 {
 public:
-	UnitDefId(int unitDefId) : id(unitDefId) {}
+	explicit UnitDefId(int unitDefId) : id(unitDefId) {}
 
 	UnitDefId() : UnitDefId(0) {}
 	

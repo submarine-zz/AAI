@@ -444,7 +444,7 @@ bool AAIBuildTree::Generate(springLegacyAI::IAICallback* cb)
 		{
 			m_unitsInCategory[ m_sideOfUnitType[id]-1 ][ unitCategory.GetArrayIndex() ].push_back(unitDefId);
 
-			UpdateUnitTypes(id, unitDefs[id]);
+			UpdateUnitTypes(unitDefId, unitDefs[id]);
 
 			if(GetUnitType(unitDefId).IsFactory())
 				++numberOfFactories;
@@ -584,7 +584,7 @@ void AAIBuildTree::PrintSummaryToFile(const std::string& filename, springLegacyA
 			if(side >= cfg->numberOfSides)
 				break;
 
-			fprintf(file, "\n\n####### Side %i (%s) #######", side+1, cfg->sideNames[side].c_str() );
+			fprintf(file, "\n\n####### Side %i (%s) #######", side+1, cfg->sideNames[side+1].c_str() );
 			for(AAIUnitCategory category(AAIUnitCategory::GetFirst()); category.End() == false; category.Next())
 			{
 				fprintf(file, "\n%s:\n", GetCategoryName(category).c_str() );
@@ -940,7 +940,7 @@ EUnitCategory AAIBuildTree::DetermineUnitCategory(const springLegacyAI::UnitDef*
 	// --------------- units ------------------------------------------------------------------------------------------
 	else
 	{
-		if(IsStartingUnit(unitDef->id))
+		if( IsStartingUnit(UnitDefId(unitDef->id)) )
 		{
 			return EUnitCategory::COMMANDER;
 		}

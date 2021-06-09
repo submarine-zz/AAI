@@ -307,7 +307,7 @@ AAIConstructor* AAIUnitTable::FindClosestAssistant(const float3& pos, int /*impo
 			if(assistant->IsIdle())
 			{
 				const float3 assistantPosition = ai->GetAICallback()->GetUnitPos(assistant->m_myUnitId.id);
-				const AAIMovementType& moveType = ai->s_buildTree.GetMovementType(assistant->m_myDefId.id);
+				const AAIMovementType& moveType = ai->s_buildTree.GetMovementType(assistant->m_myDefId);
 
 				const bool continentCheckPassed = (moveType.CannotMoveToOtherContinents() == false) || (AAIMap::GetContinentID(assistantPosition) == continent);
 				const bool commanderCheckPassed = (commander || (ai->s_buildTree.GetUnitCategory(assistant->m_myDefId).IsCommander() == false) );

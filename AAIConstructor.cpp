@@ -71,7 +71,7 @@ void AAIConstructor::Idle()
 
 				// clear up buildmap etc. (make sure conctructor wanted to build a building and not a unit)
 				if( ai->s_buildTree.GetMovementType(m_constructedDefId).IsStatic() == true )
-					ai->Execute()->ConstructionFailed(m_buildPos, m_constructedDefId.id);
+					ai->Execute()->ConstructionFailed(m_buildPos, m_constructedDefId);
 
 				// free builder
 				ConstructionFinished();
@@ -109,7 +109,7 @@ void AAIConstructor::Update()
 				Command c(-constructedUnitDefId.id);
 				ai->GetAICallback()->GiveOrder(m_myUnitId.id, &c);
 
-				m_constructedDefId = constructedUnitDefId.id;
+				m_constructedDefId = constructedUnitDefId;
 				m_activity.SetActivity(EConstructorActivity::CONSTRUCTING);
 
 				//if(ai->Getbt()->IsFactory(def_id))
@@ -129,7 +129,7 @@ void AAIConstructor::Update()
 					c.PushPos(buildSite.Position());
 
 					ai->GetAICallback()->GiveOrder(m_myUnitId.id, &c);
-					m_constructedDefId = constructedUnitDefId.id;
+					m_constructedDefId = constructedUnitDefId;
 					m_activity.SetActivity(EConstructorActivity::CONSTRUCTING); //! @todo Should be HEADING_TO_BUILDSITE
 
 					ai->UnitTable()->UnitRequested(ai->s_buildTree.GetUnitCategory(constructedUnitDefId)); // request must be called before create to keep unit counters correct
@@ -220,7 +220,7 @@ void AAIConstructor::CheckAssistance()
 		// check if another factory of that type needed
 		if( (m_buildqueue.GetLength() >= cfg->MAX_BUILDQUE_SIZE - 1) && (assistants.size() > 1) )
 		{
-			if(ai->BuildTable()->GetTotalNumberOfUnits(m_myDefId.id) < cfg->MAX_FACTORIES_PER_TYPE)
+			if(ai->BuildTable()->GetTotalNumberOfUnits(m_myDefId) < cfg->MAX_FACTORIES_PER_TYPE)
 			{
 				ai->BuildTable()->units_dynamic[m_myDefId.id].requested += 1;
 
@@ -406,7 +406,7 @@ void AAIConstructor::ConstructionFailed()
 
 	// clear up buildmap etc.
 	if(ai->s_buildTree.GetMovementType(m_constructedDefId).IsStatic() == true)
-		ai->Execute()->ConstructionFailed(m_buildPos, m_constructedDefId.id);
+		ai->Execute()->ConstructionFailed(m_buildPos, m_constructedDefId);
 
 	// tells the builder construction has finished
 	ConstructionFinished();

@@ -209,7 +209,7 @@ void AAIExecute::BuildScouts()
 		{
 			const BuildQueuePosition queuePosition = (ai->UnitTable()->GetNumberOfActiveUnitsOfCategory(EUnitCategory::SCOUT) > 1) ? BuildQueuePosition::END : BuildQueuePosition::FRONT;
 
-			TryAddingUnitsToBuildqueue(scoutId.id, 1, queuePosition, true);
+			TryAddingUnitsToBuildqueue(scoutId, 1, queuePosition, true);
 		}
 	}
 }
