@@ -115,7 +115,7 @@ void AAIAttackManager::TryToLaunchAttack(int availableAttackId, AAIThreatMap& th
 	// order attack
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
-	for(auto targetType : attackerTargetTypes)
+	for(const auto& targetType : attackerTargetTypes)
 	{
 		threatMap.UpdateLocalEnemyCombatPower(targetType, ai->Map()->GetSectorMap());
 
@@ -216,7 +216,7 @@ int AAIAttackManager::DetermineCombatUnitGroupsAvailableForattack(  std::list<AA
 						availableAAGroupsOnContinent[(*group)->GetContinentId()].push_back(*group);
 					else
 						availableAAGroupsGlobal.push_back(*group);
-				}	
+				}
 			}
 		}
 	}

@@ -231,27 +231,23 @@ public:
 
 	void SetMapType(EMapType mapType) { m_mapType = mapType; }
 
-	bool IsLand() const { return m_mapType == EMapType::LAND; }
+	bool IsLand()       const { return m_mapType == EMapType::LAND; }
 
-	bool IsLandWater() const { return m_mapType == EMapType::LAND_WATER; }
+	bool IsLandWater()  const { return m_mapType == EMapType::LAND_WATER; }
 
-	bool IsWater() const { return m_mapType == EMapType::WATER; }
+	bool IsWater()      const { return m_mapType == EMapType::WATER; }
 
 	int GetArrayIndex() const { return static_cast<int>(m_mapType); }
 
-	static const int numberOfMapTypes = static_cast<int>(EMapType::NUMBER_OF_MAP_TYPES);
-
-	static const EMapType first = EMapType::LAND;
-
-	void Next() { m_mapType = static_cast<EMapType>( static_cast<int>(m_mapType) + 1 ); }
-
-	bool End() const { return (m_mapType == EMapType::NUMBER_OF_MAP_TYPES); }
+	const std::string& GetName() const { return m_mapTypeNames[GetArrayIndex()]; }
 
 	bool operator==(const AAIMapType& rhs) const { return (m_mapType == rhs.m_mapType); }
 
-	const std::string& GetName() const { return m_mapTypeNames[GetArrayIndex()]; }
+	static constexpr    int                                       numberOfMapTypes = static_cast<int>(EMapType::NUMBER_OF_MAP_TYPES);
 
-	const static std::vector<std::string> m_mapTypeNames;
+	static constexpr    std::array<EMapType, numberOfMapTypes>    m_mapTypes       = {EMapType::LAND, EMapType::LAND_WATER, EMapType::WATER};
+
+	static const inline std::array<std::string, numberOfMapTypes> m_mapTypeNames   = {"land map", "mixed land water map", "water map"};
 
 private:
 	EMapType m_mapType;

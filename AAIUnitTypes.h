@@ -152,7 +152,7 @@ public:
 	
 	static constexpr int numberOfCombatUnitCategories = static_cast<int>(ECombatUnitCategory::NUMBER_OF_CATEGORIES);
 
-	static constexpr std::array<ECombatUnitCategory, 3> m_combatUnitCategories = {ECombatUnitCategory::SURFACE, ECombatUnitCategory::AIR, ECombatUnitCategory::SEA};
+	static constexpr std::array<ECombatUnitCategory, numberOfCombatUnitCategories> m_combatUnitCategories = {ECombatUnitCategory::SURFACE, ECombatUnitCategory::AIR, ECombatUnitCategory::SEA};
 
 	//! Returns index to access arrays storing combat unit data, i.e. ranging from 0 to numberOfCombatUnitCategories-1
 	int GetArrayIndex() const {return static_cast<int>(m_combatUnitCategory); }
@@ -161,8 +161,7 @@ public:
 	static constexpr int airIndex     = static_cast<int>(ECombatUnitCategory::AIR);
 	static constexpr int seaIndex     = static_cast<int>(ECombatUnitCategory::SEA);
 
-	static const std::vector<std::string> m_combatCategoryNames;
-	//const static std::vector<std::string> m_combatCategoryNames = {"Surface", "Air", "Sea"};
+	static const inline std::array<std::string, numberOfCombatUnitCategories> m_combatCategoryNames = {"Surface", "Air", "Sea"};
 
 private:
 	//! The unit category
@@ -225,8 +224,7 @@ public:
 
 	const std::string& GetName() const { return m_targetTypeNames[GetArrayIndex()]; }
 
-	static const std::vector<std::string> m_targetTypeNames;
-	//const static std::vector<std::string> m_targetTypeNames = {"surface", "air", "floater", "submerged", "static"};
+	static const inline std::array<std::string, numberOfTargetTypes> m_targetTypeNames = {"surface", "air", "floater", "submerged", "static"};
 private:
 	ETargetType m_targetType;
 };

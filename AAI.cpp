@@ -37,17 +37,6 @@ using namespace springLegacyAI;
 #include "CUtils/SimpleProfiler.h"
 #define AAI_SCOPED_TIMER(part) SCOPED_TIMER(part, profiler);
 
-// C++ < C++17 does not support initialization of static const within class declaration
-const std::vector<int> GamePhase::m_startFrameOfGamePhase  = {0, 10800, 27000, 72000};
-const std::vector<std::string> GamePhase::m_gamePhaseNames = {"starting phase", "early phase", "mid phase", "late game"};
-const std::vector<std::string> AAITargetType::m_targetTypeNames = {"surface", "air", "floater", "submerged", "static"};
-const std::vector<std::string> AAICombatUnitCategory::m_combatCategoryNames = {"Surface", "Air", "Sea"};
-const std::vector<std::string> AAIMapType::m_mapTypeNames = {"land map", "mixed land water map", "water map"};
-
-constexpr std::array<ECombatUnitCategory, 3> AAICombatUnitCategory::m_combatUnitCategories;
-constexpr std::array<ETargetType, 4>         AAITargetType::m_mobileTargetTypes;
-constexpr std::array<ETargetType, 5>         AAITargetType::m_targetTypes;
-
 AAIBuildTree AAI::s_buildTree;
 
 int AAI::s_aaiInstances = 0;
@@ -121,7 +110,7 @@ AAI::~AAI()
 	const AttackedByRatesPerGamePhase& attackedByRates = m_brain->GetAttackedByRates();
 
 	Log("\nAttack frequencies (combat unit category / frequency) \n");
-	for(GamePhase gamePhaseIterator(0); gamePhaseIterator <= gamePhase; gamePhaseIterator.Next())
+	for(GamePhase gamePhaseIterator(0); gamePhaseIterator <= gamePhase; gamePhaseIterator.EnterNextPhase())
 	{
 		Log("Game phase %s:", gamePhaseIterator.GetName().c_str());
 		for(const auto& targetType : AAITargetType::m_mobileTargetTypes)

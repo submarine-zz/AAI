@@ -13,6 +13,7 @@
 #include "System/float3.h"
 #include "Sim/Misc/GlobalConstants.h"
 #include <vector>
+#include <array>
 #include <string>
 #include <list>
 
@@ -147,13 +148,13 @@ struct UnitId
 public:
 	explicit UnitId(int unitId) : id(unitId) { };
 
-	UnitId() : id(-1) { };
+	UnitId() : UnitId(-1) { };
 
 	bool operator==(const UnitId& rhs) const { return (id == rhs.id); }
 
 	bool operator<(const UnitId& rhs) const { return (id < rhs.id); }
 
-	bool IsValid() const { return (id >= 0) ? true : false; };
+	bool IsValid() const { return (id >= 0); };
 
 	void Invalidate() { id = -1; };
 
@@ -170,7 +171,7 @@ public:
 	
 	bool operator==(const UnitDefId& rhs) const { return (id == rhs.id); }
 
-	bool IsValid() const { return (id > 0) ? true : false; }
+	bool IsValid() const { return (id > 0); }
 
 	void Invalidate() { id = 0; }
 
@@ -185,7 +186,7 @@ public:
 
 	FactoryId() : FactoryId(-1) { }
 
-	bool IsValid() const { return (id >= 0) ? true : false; }
+	bool IsValid() const { return (id >= 0); }
 
 	void Set(int factoryId) { id = factoryId; }
 
@@ -307,22 +308,19 @@ public:
 
 	bool IsLatePhase()           const {return (m_gamePhase == 3); }
 
-	void Next() { ++m_gamePhase; }
+	void EnterNextPhase() { ++m_gamePhase; }
 
-	bool End() const { return (m_gamePhase >= numberOfGamePhases); }
+	bool IsLast() const { return (m_gamePhase >= numberOfGamePhases); }
 
-	static const int numberOfGamePhases = 4;
+	static constexpr int numberOfGamePhases = 4;
 
 private:
 	int m_gamePhase;
 
 	//! Frame at which respective game phase starts: 0 -> 0 min, 1 -> 6min, 2 -> 15 min, 3 -> 40 min
-	const static std::vector<int>         m_startFrameOfGamePhase;
+	static constexpr    std::array<int, numberOfGamePhases>         m_startFrameOfGamePhase = {0, 10800, 27000, 72000};
 
-	const static std::vector<std::string> m_gamePhaseNames;
-	
-	//const static inline std::vector<int> m_startFrameOfGamePhase = {0, 10800, 27000, 72000}; use when switching to Cpp17
-	//const static inline std::vector<int> m_gamePhaseNames = {"starting phase", "early phase", "mid phase", "late game"}; use when switching to Cpp17
+	static const inline std::array<std::string, numberOfGamePhases> m_gamePhaseNames        = {"starting phase", "early phase", "mid phase", "late game"};
 };
 
 class SmoothedData

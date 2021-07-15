@@ -958,9 +958,9 @@ bool AAIBuildTable::LoadModLearnData()
 		}
 
 		// load attacked_by table
-		for(AAIMapType mapType(AAIMapType::first); mapType.End() == false; mapType.Next())
+		for(const auto& mapType : AAIMapType::m_mapTypes)
 		{
-			for(GamePhase gamePhase(0); gamePhase.End() == false; gamePhase.Next())
+			for(GamePhase gamePhase(0); gamePhase.IsLast() == false; gamePhase.EnterNextPhase())
 			{
 				for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
 				{
@@ -993,13 +993,13 @@ void AAIBuildTable::SaveModLearnData(const GamePhase& gamePhase, const AttackedB
 	updateRates.DecreaseByFactor(gamePhase, 0.7f);
 
 	// save attacked_by table
-	for(AAIMapType mapTypeIterator(AAIMapType::first); mapTypeIterator.End() == false; mapTypeIterator.Next())
+	for(const auto& mapType : AAIMapType::m_mapTypes)
 	{
-		for(GamePhase gamePhaseIterator(0); gamePhaseIterator.End() == false; gamePhaseIterator.Next())
+		for(GamePhase gamePhaseIterator(0); gamePhaseIterator.IsLast() == false; gamePhaseIterator.EnterNextPhase())
 		{
 			for(const auto& targetType : AAITargetType::m_mobileTargetTypes)
 			{
-				fprintf(saveFile, "%f ", s_attackedByRates.GetAttackedByRate(mapTypeIterator, gamePhaseIterator, targetType));
+				fprintf(saveFile, "%f ", s_attackedByRates.GetAttackedByRate(mapType, gamePhaseIterator, targetType));
 			}
 			fprintf(saveFile, "\n");
 		}
